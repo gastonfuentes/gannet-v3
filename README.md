@@ -1,31 +1,54 @@
-<!-- sinergia-tools-readme:v1 -->
-# Nexora
+# GannetLabs
 
-Plantilla web lista para que la personalices con **Praxis**.
+Landing page de GannetLabs — Vite + React + TypeScript, shadcn/ui, Tailwind CSS y Framer Motion.
 
----
+## Stack
 
-## 1 · Descarga el proyecto
+- **Vite** + **React 18** + **TypeScript**
+- **Tailwind CSS** + `tailwindcss-animate`
+- **shadcn/ui** (Radix UI primitives) en `src/components/ui`
+- **Framer Motion** para animaciones (`src/components/animations`)
+- **React Router** para el ruteo
+- **React Hook Form** + **Zod** para formularios y validación
 
-Con tu acceso ya aceptado, clona el repositorio:
+## Requisitos
+
+- Node.js 18+
+- npm
+
+## Desarrollo local
 
 ```bash
-git clone https://github.com/juanlara-aidev/nexora.git
-cd nexora
+npm install
+npm run dev
 ```
 
-O descárgalo como ZIP desde GitHub: botón **Code → Download ZIP**, descomprime y abre la carpeta.
+El servidor de desarrollo queda arriba en `http://localhost:5173` (o el próximo puerto libre).
 
-## 2 · Abre el proyecto e inicia una sesión de Claude Code
+## Scripts
 
-Abre la carpeta en tu editor e inicia una sesión de Claude Code **dentro del proyecto**.
+| Comando | Descripción |
+| --- | --- |
+| `npm run dev` | Levanta el servidor de desarrollo de Vite |
+| `npm run build` | Build de producción |
+| `npm run build:dev` | Build en modo development |
+| `npm run preview` | Sirve el build de producción localmente |
+| `npm run lint` | Corre ESLint |
 
-## 3 · Copia y pega este prompt a tu agente
+## Estructura
 
-```text
-Inicia este proyecto en local: detecta el framework, instala las dependencias,
-levanta el servidor de desarrollo y déjalo corriendo. Cuando esté arriba, dime
-en qué dirección lo veo en el navegador y empecemos a iterar sobre el diseño.
+```
+src/
+├── components/
+│   ├── animations/    # FadeUp, ShinyText, StaggeredFade
+│   ├── sections/      # Secciones de la landing (Hero, Solutions, FAQ, etc.)
+│   └── ui/            # Componentes shadcn/ui
+├── hooks/
+├── lib/
+├── pages/             # Index, NotFound
+└── main.tsx
 ```
 
-Eso es todo. Tu agente detecta cómo arrancarlo y te deja listo para construir.
+## Deploy
+
+Desplegado en Vercel desde la rama `main`.
