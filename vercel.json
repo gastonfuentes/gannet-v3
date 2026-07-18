@@ -1,3 +1,7 @@
 {
+  "redirects": [
+    { "source": "/gannet-os", "destination": "/gannet-os/", "permanent": true },
+    { "source": "/modulitia", "destination": "/modulitia/", "permanent": true }
+  ],
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
