@@ -1,7 +1,7 @@
 import Logo from "@/components/icons/Logo";
 
 const navLinks = [
-  { label: "Soluciones", href: "#soluciones" },
+  { label: "Productos", href: "#productos" },
   { label: "Cómo trabajamos", href: "#como-trabajamos" },
   { label: "FAQ", href: "#faq" },
   { label: "Contacto", href: "#contacto" },

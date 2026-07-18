@@ -9,7 +9,7 @@ const VIDEO_URL = "/hero-bg.mp4";
 
 const navLinks = [
   { label: "Inicio", href: "#inicio" },
-  { label: "Soluciones", href: "#soluciones" },
+  { label: "Productos", href: "#productos" },
   { label: "Cómo trabajamos", href: "#como-trabajamos" },
   { label: "FAQ", href: "#faq" },
 ];

@@ -58,7 +58,7 @@ const Problems = () => {
 
         <FadeUp delay={0.2} className="mt-12 flex justify-center">
           <Button asChild variant="heroOutline" size="pillLg" className="gap-1.5">
-            <a href="#soluciones">
+            <a href="#productos">
               Ver cómo lo resolvemos
               <ArrowRight className="h-4 w-4" />
             </a>

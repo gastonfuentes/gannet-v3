@@ -1,6 +1,6 @@
 import HeroSection from "@/components/HeroSection";
 import Problems from "@/components/sections/Problems";
-import Solutions from "@/components/sections/Solutions";
+import Products from "@/components/sections/Products";
 import Clients from "@/components/sections/Clients";
 import HowWeWork from "@/components/sections/HowWeWork";
 import WhyGannet from "@/components/sections/WhyGannet";
@@ -14,7 +14,7 @@ const Index = () => {
     <main className="min-h-screen bg-background">
       <HeroSection />
       <Problems />
-      <Solutions />
+      <Products />
       <Clients />
       <HowWeWork />
       <WhyGannet />
