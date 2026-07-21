@@ -53,10 +53,10 @@ const escapeHtml = (value: string) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
-const buildHtml = (
+const buildRows = (
   label: string,
   data: z.infer<typeof contactSchema>,
-): string => {
+): Array<[string, string]> => {
   const rows: Array<[string, string]> = [
     ["Origen", label],
     ["Nombre", data.name],
@@ -67,6 +67,32 @@ const buildHtml = (
   for (const [key, value] of Object.entries(data.meta ?? {})) {
     if (value) rows.push([key, value]);
   }
+
+  return rows;
+};
+
+/**
+ * Plain-text alternative. Sending HTML on its own is a documented spam signal,
+ * so every message carries both parts.
+ */
+const buildText = (
+  label: string,
+  data: z.infer<typeof contactSchema>,
+): string =>
+  [
+    `Nueva consulta desde la web (${label})`,
+    "",
+    ...buildRows(label, data).map(([key, value]) => `${key}: ${value}`),
+    "",
+    "Mensaje:",
+    data.message,
+  ].join("\n");
+
+const buildHtml = (
+  label: string,
+  data: z.infer<typeof contactSchema>,
+): string => {
+  const rows = buildRows(label, data);
 
   const rowsHtml = rows
     .map(
@@ -178,6 +204,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       reply_to: data.email,
       subject: `[${label}] Nueva consulta — ${data.name}`,
       html: buildHtml(label, data),
+      text: buildText(label, data),
     }),
   });
 
