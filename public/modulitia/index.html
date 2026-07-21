@@ -4522,8 +4522,7 @@
           </ul>
         </div>
 
-        <form class="lead-form" id="formulario-modulitia" name="contacto" action="/" method="post" data-netlify="true"
-          novalidate>
+        <form class="lead-form" id="formulario-modulitia" name="contacto" method="post" novalidate>
           <div class="form-header">
             <h3 class="form-title">Empezá con una recomendación clara.</h3>
             <p class="form-sub">Dejanos tus datos y te respondemos con la primera pieza que conviene activar.</p>
@@ -4578,6 +4577,10 @@
               <span class="form-error" id="lead-message-error">Escribí una breve descripción.</span>
             </div>
           </div>
+
+          <!-- Honeypot: hidden from users, catches bots that fill every field. -->
+          <input type="text" name="website" id="lead-website" tabindex="-1" autocomplete="off" aria-hidden="true"
+            style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
 
           <div class="form-actions">
             <button class="form-submit" type="submit">
@@ -4721,7 +4724,10 @@
 
       if (leadForm) {
         var status = leadForm.querySelector('.form-status');
-        var fields = Array.prototype.slice.call(leadForm.querySelectorAll('input, select, textarea'));
+        // The honeypot is excluded: it is never shown, so it is never validated.
+        var fields = Array.prototype.slice.call(
+          leadForm.querySelectorAll('input:not([name="website"]), select, textarea')
+        );
 
         function setFieldState(field, isValid) {
           var wrapper = field.closest('.form-field');
@@ -4792,12 +4798,24 @@
 
           var formData = new FormData(leadForm);
 
-          fetch('/', {
+          fetch('/api/contact', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams(formData).toString()
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              source: 'modulitia',
+              name: formData.get('nombre'),
+              email: formData.get('email'),
+              message: formData.get('mensaje'),
+              meta: {
+                'Tipo de negocio': formData.get('negocio'),
+                'Pieza que le interesa': formData.get('modulo')
+              },
+              website: formData.get('website')
+            })
           })
-            .then(function () {
+            .then(function (response) {
+              // A resolved fetch is not a delivered email: check the status.
+              if (!response.ok) throw new Error('request failed');
               if (status) {
                 status.classList.add('success');
                 status.textContent = 'Consulta lista. Te responderemos con la primera pieza recomendada.';
