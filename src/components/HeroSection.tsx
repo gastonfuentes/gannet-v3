@@ -14,6 +14,11 @@ const navLinks = [
   { label: "FAQ", href: "#faq" },
 ];
 
+const productLinks = [
+  { label: "GANNET OS", href: "/gannet-os/" },
+  { label: "Modulitia", href: "/modulitia/" },
+];
+
 const HeroSection = () => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -41,24 +46,41 @@ const HeroSection = () => {
               <Logo className="h-7 w-auto" />
             </a>
 
-            {/* Desktop nav pill */}
-            <div className="hidden items-center gap-1 rounded-full border border-gray-700 px-2 py-1 lg:flex">
-              {navLinks.map((link) => (
+            {/* Desktop pills */}
+            <div className="hidden items-center gap-3 lg:flex">
+              {/* Main nav pill */}
+              <div className="flex items-center gap-1 rounded-full border border-gray-700 px-2 py-1">
+                {navLinks.map((link) => (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    className="rounded-full px-3 py-1.5 text-sm text-white/80 transition-colors hover:text-white"
+                  >
+                    {link.label}
+                  </a>
+                ))}
                 <a
-                  key={link.label}
-                  href={link.href}
-                  className="rounded-full px-3 py-1.5 text-sm text-white/80 transition-colors hover:text-white"
+                  href="#contacto"
+                  className="flex items-center gap-1 rounded-full px-3 py-1.5 text-sm text-white/80 transition-colors hover:text-white"
                 >
-                  {link.label}
+                  Contacto
+                  <ArrowUpRight className="h-3.5 w-3.5" />
                 </a>
-              ))}
-              <a
-                href="#contacto"
-                className="flex items-center gap-1 rounded-full px-3 py-1.5 text-sm text-white/80 transition-colors hover:text-white"
-              >
-                Contacto
-                <ArrowUpRight className="h-3.5 w-3.5" />
-              </a>
+              </div>
+
+              {/* Products pill — highlighted with a filled background */}
+              <div className="flex items-center gap-1 rounded-full bg-brand px-2 py-1">
+                {productLinks.map((product) => (
+                  <a
+                    key={product.label}
+                    href={product.href}
+                    className="flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium text-brand-foreground transition-colors hover:bg-black/10"
+                  >
+                    {product.label}
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </a>
+                ))}
+              </div>
             </div>
 
             {/* Mobile hamburger */}
@@ -85,6 +107,20 @@ const HeroSection = () => {
                   {link.label}
                 </a>
               ))}
+
+              <div className="mt-2 flex flex-col gap-1 rounded-xl bg-brand p-2">
+                {productLinks.map((product) => (
+                  <a
+                    key={product.label}
+                    href={product.href}
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-brand-foreground transition-colors hover:bg-black/10"
+                  >
+                    {product.label}
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </a>
+                ))}
+              </div>
             </div>
           )}
         </header>
