@@ -120,8 +120,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const from = process.env.CONTACT_FROM;
 
   if (!apiKey || !to || !from) {
-    console.error("contact: missing RESEND_API_KEY / CONTACT_TO / CONTACT_FROM");
-    return res.status(500).json({ ok: false, error: "No pudimos enviar el mensaje." });
+    // Name which ones are unset, never their values: this tells us whether the
+    // project is misconfigured without exposing anything secret.
+    const missing = [
+      !apiKey && "RESEND_API_KEY",
+      !to && "CONTACT_TO",
+      !from && "CONTACT_FROM",
+    ].filter(Boolean);
+    console.error("contact: missing env", missing.join(", "));
+    return res.status(500).json({
+      ok: false,
+      error: "No pudimos enviar el mensaje.",
+      code: "config_missing",
+      missing,
+    });
   }
 
   const label = SOURCE_LABELS[data.source];
@@ -142,9 +154,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   });
 
   if (!response.ok) {
-    // Log the provider detail, never leak it to the client.
+    // The provider's message goes to the logs only. The status code is enough
+    // to tell a bad key (401) from an unverified domain (403) from the outside.
     console.error("contact: resend failed", response.status, await response.text());
-    return res.status(500).json({ ok: false, error: "No pudimos enviar el mensaje." });
+    return res.status(500).json({
+      ok: false,
+      error: "No pudimos enviar el mensaje.",
+      code: "provider_error",
+      providerStatus: response.status,
+    });
   }
 
   return res.status(200).json({ ok: true });
