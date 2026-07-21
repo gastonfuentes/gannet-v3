@@ -49,6 +49,33 @@ src/
 └── main.tsx
 ```
 
+## Formulario de contacto
+
+Las tres webs (landing, `/modulitia/`, `/gannet-os/`) postean al mismo endpoint,
+`api/contact.ts`, que envía el mail vía Resend. El campo `source` del payload es lo que
+distingue el origen en el asunto: `[MODULITIA] Nueva consulta — Nombre`. El `reply-to`
+apunta al email de quien consulta.
+
+### Variables de entorno
+
+Cargarlas en Vercel (Project Settings → Environment Variables), y en `.env.local` para
+probar con `vercel dev`:
+
+| Variable | Ejemplo | Notas |
+| --- | --- | --- |
+| `RESEND_API_KEY` | `re_xxx` | https://resend.com/api-keys |
+| `CONTACT_TO` | `contacto@gannetlabs.com` | Destino de las consultas |
+| `CONTACT_FROM` | `GannetLabs Web <web@gannetlabs.com>` | Requiere verificar el dominio en Resend (registros SPF/DKIM en el DNS de Hostinger). Sin verificar, usar `onboarding@resend.dev` |
+
+### Probar el endpoint en local
+
+`npm run dev` levanta solo Vite y **no ejecuta las funciones serverless**: `/api/contact`
+responde 404. Para probarlo end-to-end hace falta el CLI de Vercel:
+
+```bash
+vercel dev
+```
+
 ## Deploy
 
 Desplegado en Vercel desde la rama `main`.
