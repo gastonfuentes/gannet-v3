@@ -29,6 +29,23 @@ const contactSchema = z.object({
   website: z.string().max(200).nullish(),
 });
 
+/**
+ * Environment variables are typed into a dashboard by hand, and wrapping the
+ * value in quotes is the usual slip: the quotes become part of the string and
+ * the provider rejects it. Strip them, and any stray whitespace, on read.
+ */
+const readEnv = (name: string): string | undefined => {
+  const raw = process.env[name]?.trim();
+  if (!raw) return undefined;
+  const unquoted = raw.replace(/^(["'])([\s\S]*)\1$/, "$2").trim();
+  return unquoted || undefined;
+};
+
+/** Accepts `email@example.com` and `Name <email@example.com>`, as Resend does. */
+const isValidFrom = (value: string): boolean =>
+  /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(value) ||
+  /^[^<>]+<[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+>$/.test(value);
+
 const escapeHtml = (value: string) =>
   value
     .replace(/&/g, "&amp;")
@@ -115,9 +132,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Bot: pretend it worked so it doesn't retry, but send nothing.
   if (data.website) return res.status(200).json({ ok: true });
 
-  const apiKey = process.env.RESEND_API_KEY;
-  const to = process.env.CONTACT_TO;
-  const from = process.env.CONTACT_FROM;
+  const apiKey = readEnv("RESEND_API_KEY");
+  const to = readEnv("CONTACT_TO");
+  const from = readEnv("CONTACT_FROM");
 
   if (!apiKey || !to || !from) {
     // Name which ones are unset, never their values: this tells us whether the
@@ -133,6 +150,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       error: "No pudimos enviar el mensaje.",
       code: "config_missing",
       missing,
+    });
+  }
+
+  // Catch a malformed sender here rather than as an opaque 422 from the provider.
+  if (!isValidFrom(from)) {
+    console.error("contact: CONTACT_FROM is malformed", JSON.stringify(from));
+    return res.status(500).json({
+      ok: false,
+      error: "No pudimos enviar el mensaje.",
+      code: "invalid_from",
+      hint: "CONTACT_FROM debe ser 'email@dominio.com' o 'Nombre <email@dominio.com>', sin comillas.",
     });
   }
 
