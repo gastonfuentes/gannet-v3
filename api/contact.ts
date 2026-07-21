@@ -75,33 +75,45 @@ const buildHtml = (
 </div>`;
 };
 
-export default async function handler(req: Request): Promise<Response> {
-  const json = (body: unknown, status: number) =>
-    new Response(JSON.stringify(body), {
-      status,
-      headers: { "Content-Type": "application/json" },
-    });
+/**
+ * Vercel's Node runtime invokes handlers with the Express-style (req, res)
+ * pair, not the Web Request/Response pair. Typed structurally so this stays
+ * dependency-free.
+ */
+type VercelRequest = {
+  method?: string;
+  body?: unknown;
+};
 
+type VercelResponse = {
+  status(code: number): VercelResponse;
+  json(body: unknown): void;
+};
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
-    return json({ ok: false, error: "Method not allowed" }, 405);
+    return res.status(405).json({ ok: false, error: "Method not allowed" });
   }
 
-  let payload: unknown;
-  try {
-    payload = await req.json();
-  } catch {
-    return json({ ok: false, error: "Cuerpo inválido." }, 400);
+  // The runtime parses JSON bodies, but fall back in case it hands us a string.
+  let payload: unknown = req.body;
+  if (typeof payload === "string") {
+    try {
+      payload = JSON.parse(payload);
+    } catch {
+      return res.status(400).json({ ok: false, error: "Cuerpo inválido." });
+    }
   }
 
   const parsed = contactSchema.safeParse(payload);
   if (!parsed.success) {
-    return json({ ok: false, error: "Revisá los datos del formulario." }, 400);
+    return res.status(400).json({ ok: false, error: "Revisá los datos del formulario." });
   }
 
   const data = parsed.data;
 
   // Bot: pretend it worked so it doesn't retry, but send nothing.
-  if (data.website) return json({ ok: true }, 200);
+  if (data.website) return res.status(200).json({ ok: true });
 
   const apiKey = process.env.RESEND_API_KEY;
   const to = process.env.CONTACT_TO;
@@ -109,7 +121,7 @@ export default async function handler(req: Request): Promise<Response> {
 
   if (!apiKey || !to || !from) {
     console.error("contact: missing RESEND_API_KEY / CONTACT_TO / CONTACT_FROM");
-    return json({ ok: false, error: "No pudimos enviar el mensaje." }, 500);
+    return res.status(500).json({ ok: false, error: "No pudimos enviar el mensaje." });
   }
 
   const label = SOURCE_LABELS[data.source];
@@ -132,8 +144,8 @@ export default async function handler(req: Request): Promise<Response> {
   if (!response.ok) {
     // Log the provider detail, never leak it to the client.
     console.error("contact: resend failed", response.status, await response.text());
-    return json({ ok: false, error: "No pudimos enviar el mensaje." }, 500);
+    return res.status(500).json({ ok: false, error: "No pudimos enviar el mensaje." });
   }
 
-  return json({ ok: true }, 200);
+  return res.status(200).json({ ok: true });
 }
