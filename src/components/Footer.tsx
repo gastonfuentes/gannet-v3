@@ -8,8 +8,7 @@ const navLinks = [
 ];
 
 const contactLinks = [
-  { label: "hola@gannetlabs.com", href: "mailto:hola@gannetlabs.com" },
-  { label: "WhatsApp", href: "https://wa.me/5491100000000" },
+  { label: "contacto@gannetlabs.com", href: "mailto:contacto@gannetlabs.com" },
   { label: "LinkedIn", href: "https://linkedin.com/company/gannetlabs" },
   { label: "Instagram", href: "https://instagram.com/gannetlabs" },
 ];
