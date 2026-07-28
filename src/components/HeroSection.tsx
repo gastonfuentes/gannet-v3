@@ -47,11 +47,6 @@ const navLinks = [
   { label: "FAQ", href: "#faq" },
 ];
 
-const productLinks = [
-  { label: "GANNET OS", href: "/gannet-os/" },
-  { label: "Modulitia", href: "/modulitia/" },
-];
-
 const HeroSection = () => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -75,15 +70,16 @@ const HeroSection = () => {
       <div className="relative z-10 flex min-h-[100dvh] flex-col">
         {/* Navigation */}
         <header className="mx-auto w-full max-w-7xl px-6 py-5 lg:px-8">
-          <nav className="flex items-center justify-between">
+          {/* Three tracks so the nav pill is centered against the header
+              itself, not against the space the logo leaves over. */}
+          <nav className="grid grid-cols-[1fr_auto_1fr] items-center">
             {/* Logo */}
-            <a href="#inicio" className="flex items-center">
+            <a href="#inicio" className="flex items-center justify-self-start">
               <Logo className="h-7 w-auto" />
             </a>
 
-            {/* Desktop pills */}
+            {/* Desktop nav pill */}
             <div className="hidden items-center gap-3 lg:flex">
-              {/* Main nav pill */}
               <div className="flex items-center gap-1 rounded-full border border-gray-700 px-2 py-1">
                 {navLinks.map((link) => (
                   <a
@@ -102,25 +98,13 @@ const HeroSection = () => {
                   <ArrowUpRight className="h-3.5 w-3.5" />
                 </a>
               </div>
-
-              {/* Products pill — highlighted with a filled background */}
-              <div className="flex items-center gap-1 rounded-full bg-brand px-2 py-1">
-                {productLinks.map((product) => (
-                  <a
-                    key={product.label}
-                    href={product.href}
-                    className="flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium text-brand-foreground transition-colors hover:bg-black/10"
-                  >
-                    {product.label}
-                    <ArrowUpRight className="h-3.5 w-3.5" />
-                  </a>
-                ))}
-              </div>
             </div>
 
-            {/* Mobile hamburger */}
+            {/* Mobile hamburger. Pinned to the third track: the desktop pill
+                is `display: none` here, so it generates no grid cell and the
+                button would otherwise slide into the middle one. */}
             <button
-              className="p-2 text-white lg:hidden"
+              className="col-start-3 justify-self-end p-2 text-white lg:hidden"
               onClick={() => setIsOpen((v) => !v)}
               aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}
               aria-expanded={isOpen}
@@ -142,39 +126,27 @@ const HeroSection = () => {
                   {link.label}
                 </a>
               ))}
-
-              <div className="mt-2 flex flex-col gap-1 rounded-xl bg-brand p-2">
-                {productLinks.map((product) => (
-                  <a
-                    key={product.label}
-                    href={product.href}
-                    onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-brand-foreground transition-colors hover:bg-black/10"
-                  >
-                    {product.label}
-                    <ArrowUpRight className="h-3.5 w-3.5" />
-                  </a>
-                ))}
-              </div>
             </div>
           )}
         </header>
 
-        {/* Top context row */}
-        <div className="mx-auto mt-4 w-full max-w-7xl px-6 lg:px-8">
-          <div className="grid gap-6 lg:grid-cols-2">
-            <p className="max-w-md text-sm text-white/80 md:text-base">
-              Conectamos las herramientas que ya usás y construimos soluciones con inteligencia
-              artificial sobre ellas: vendé mejor, ahorrá tiempo y decidí con datos.
-            </p>
-            <p className="max-w-xs text-sm text-white/80 md:text-base lg:justify-self-end lg:text-right">
-              8+ proyectos entregados en 3 países !
-            </p>
-          </div>
-        </div>
-
         {/* Hero center block */}
         <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col items-center justify-center px-6 text-center lg:px-8">
+          {/* Sets up the rotating headline below it. From `md` up, each clause
+              is a block so the sentence breaks exactly where intended; below
+              that they stay inline and reflow naturally. The wider measure at
+              `md` is what keeps the longest clause on one line instead of
+              wrapping and turning three lines into four. Line height rides in
+              the `text-{size}/{leading}` shorthand: a standalone `leading-*`
+              loses the cascade to a responsive `text-*`. */}
+          <p className="mb-8 max-w-md text-[13px]/[1.65] text-white/80 md:mb-10 md:max-w-2xl md:text-[15px]/[1.65]">
+            <span className="md:block">Conectamos las herramientas que ya usás</span>{" "}
+            <span className="md:block">
+              y construimos soluciones con inteligencia artificial sobre ellas:
+            </span>{" "}
+            <span className="md:block">vendé mejor, ahorrá tiempo y decidí con datos.</span>
+          </p>
+
           <h1 className="tracking-tighter">
             {/* Stable full heading for screen readers and crawlers — the
                 animated content below is decorative and hidden from them. */}
