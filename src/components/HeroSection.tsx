@@ -1,15 +1,45 @@
 import { useState } from "react";
 import { ArrowRight, ArrowUpRight, Menu, X } from "lucide-react";
 import ShinyText from "@/components/animations/ShinyText";
+import RotatingText from "@/components/animations/RotatingText";
 import Logo from "@/components/icons/Logo";
 
 // Video served locally from /public. Trimmed to its moving section (the original
 // had ~1.6s of frozen frames at the end that broke the loop). See hero-bg.mp4.
 const VIDEO_URL = "/hero-bg.mp4";
 
+// Module-level constant so RotatingText receives a stable array reference —
+// required for its React.memo to actually prevent re-renders when
+// HeroSection re-renders for unrelated reasons (e.g. toggling the mobile menu).
+// The H1 reads as one sentence: "Gannet <phrase> con IA." Each phrase is a
+// verb clause taking "Gannet" as its subject, so the three lines connect.
+// Imperatives, so each phrase stands on its own as a full sentence. Kept
+// within a narrow character range so the reserved box stays close to every
+// phrase's natural width.
+const HERO_ROTATING_PHRASES = [
+  "Potenciá tu negocio",
+  "Conectá tus sistemas",
+  "Ordená tu operación",
+  "Automatizá tus tareas",
+  "Integrá tu ecosistema",
+];
+
+// Shared by the rotating phrase and the fixed "con IA." that closes it —
+// they read as one sentence, so they share a size.
+//
+// The line height rides along in the `text-{size}/{leading}` shorthand on
+// purpose: Tailwind's `text-*` utilities also set `line-height` (`text-7xl`
+// ships `line-height: 1`), and a responsive variant sits in a later media
+// query than a standalone `leading-*`, so it would win the cascade and
+// silently override it. 1.4 clears the font's ~1.25em content area, which
+// the rotating phrase's `overflow-hidden` mask would otherwise clip.
+const HERO_LINE_SIZE =
+  "text-2xl/[1.4] font-medium sm:text-3xl/[1.4] md:text-5xl/[1.4] lg:text-6xl/[1.4] xl:text-7xl/[1.4]";
+
 const navLinks = [
   { label: "Inicio", href: "#inicio" },
   { label: "Productos", href: "#productos" },
+  { label: "Integraciones", href: "#integraciones" },
   { label: "Cómo trabajamos", href: "#como-trabajamos" },
   { label: "FAQ", href: "#faq" },
 ];
@@ -23,7 +53,7 @@ const HeroSection = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <section id="inicio" className="relative h-screen w-full overflow-hidden bg-black font-sans">
+    <section id="inicio" className="relative min-h-[100dvh] w-full overflow-hidden bg-black font-sans">
       {/* Video Background */}
       <video
         className="absolute inset-0 z-0 h-full w-full object-cover"
@@ -37,7 +67,9 @@ const HeroSection = () => {
       <div className="absolute inset-0 z-0 bg-black/50" />
 
       {/* Foreground */}
-      <div className="relative z-10 flex h-full flex-col">
+      {/* Matches the section's min-height: a percentage `h-full` would not
+          resolve against a min-height-only parent, collapsing the centering. */}
+      <div className="relative z-10 flex min-h-[100dvh] flex-col">
         {/* Navigation */}
         <header className="mx-auto w-full max-w-7xl px-6 py-5 lg:px-8">
           <nav className="flex items-center justify-between">
@@ -129,8 +161,8 @@ const HeroSection = () => {
         <div className="mx-auto mt-4 w-full max-w-7xl px-6 lg:px-8">
           <div className="grid gap-6 lg:grid-cols-2">
             <p className="max-w-md text-sm text-white/80 md:text-base">
-              Diseñamos automatizaciones, integraciones y agentes de IA para que vendas mejor,
-              ahorres tiempo y tomes decisiones con información, no con intuición.
+              Conectamos las herramientas que ya usás y construimos soluciones con inteligencia
+              artificial sobre ellas: vendé mejor, ahorrá tiempo y decidí con datos.
             </p>
             <p className="max-w-xs text-sm text-white/80 md:text-base lg:justify-self-end lg:text-right">
               8+ proyectos entregados en 3 países !
@@ -140,14 +172,27 @@ const HeroSection = () => {
 
         {/* Hero center block */}
         <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col items-center justify-center px-6 text-center lg:px-8">
-          <p className="text-xs uppercase tracking-tight text-white/80 md:text-sm">
-            Software · Automatización · IA aplicada
-          </p>
-
-          <h1 className="mt-4 tracking-tighter text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl leading-[0.85]">
-            <span className="block font-medium text-brand">Gannet</span>
-            <span className="block font-medium text-white">Tecnología que</span>
-            <ShinyText text="resuelve." className="block font-medium" baseColor="#7dda9a" speed={8} />
+          <h1 className="tracking-tighter">
+            {/* Stable full heading for screen readers and crawlers — the
+                animated content below is decorative and hidden from them. */}
+            <span className="sr-only">
+              Potenciá tu negocio con inteligencia artificial
+            </span>
+            <span className="block" aria-hidden="true">
+              {/* The rotating phrase and "con IA." share one line and read as
+                  a single sentence. The leading that keeps the mask from
+                  clipping descenders lives in HERO_LINE_SIZE. */}
+              <span
+                className={`flex flex-wrap items-start justify-center gap-x-[0.25em] ${HERO_LINE_SIZE}`}
+              >
+                <RotatingText
+                  phrases={HERO_ROTATING_PHRASES}
+                  align="end"
+                  className="tracking-tight text-white"
+                />
+                <ShinyText text="con IA." baseColor="#7dda9a" speed={8} />
+              </span>
+            </span>
           </h1>
 
           <a
