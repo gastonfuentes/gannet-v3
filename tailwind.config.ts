@@ -92,10 +92,23 @@ export default {
             height: "0",
           },
         },
+        /** Marches the dashes of a connector line toward the hub. */
+        dataflow: {
+          from: { strokeDashoffset: "12" },
+          to: { strokeDashoffset: "0" },
+        },
+        /** Slow breathing halo behind the central hub. */
+        "hub-pulse": {
+          "0%, 100%": { opacity: "0.35", transform: "scale(1)" },
+          "50%": { opacity: "0.6", transform: "scale(1.06)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        // Linear is intentional: a data flow must not pulse or ease.
+        dataflow: "dataflow 1.6s linear infinite",
+        "hub-pulse": "hub-pulse 4s ease-in-out infinite",
       },
     },
   },
