@@ -2,6 +2,7 @@ import Logo from "@/components/icons/Logo";
 
 const navLinks = [
   { label: "Productos", href: "#productos" },
+  { label: "Integraciones", href: "#integraciones" },
   { label: "Cómo trabajamos", href: "#como-trabajamos" },
   { label: "FAQ", href: "#faq" },
   { label: "Contacto", href: "#contacto" },
@@ -23,7 +24,7 @@ const Footer = () => {
           <div className="md:col-span-1">
             <Logo className="h-7 w-auto" />
             <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-              Software, automatización, datos e IA aplicada para negocios reales.
+              Inteligencia artificial aplicada sobre las herramientas que ya usás.
             </p>
           </div>
 

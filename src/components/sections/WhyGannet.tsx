@@ -5,15 +5,15 @@ import SectionHeading from "@/components/sections/SectionHeading";
 const reasons = [
   {
     icon: Target,
-    title: "Foco en el problema, no en la tecnología",
+    title: "IA con criterio de negocio",
     description:
-      "Primero entendemos qué necesita el negocio. La tecnología es la herramienta, no el objetivo. Nunca vendemos complejidad innecesaria.",
+      "Primero entendemos qué necesita el negocio, después elegimos la tecnología. Nunca vendemos complejidad innecesaria.",
   },
   {
     icon: Plug,
-    title: "Soluciones que se integran con lo que ya tenés",
+    title: "Construimos sobre tus herramientas",
     description:
-      "No pedimos que tires lo que ya funciona. Trabajamos con tus herramientas actuales y las conectamos para que rindan más.",
+      "No pedimos que tires lo que ya funciona: nos integramos a tu software actual y lo hacemos rendir más.",
   },
   {
     icon: Gauge,
@@ -37,7 +37,7 @@ const WhyGannet = () => {
           eyebrow="Por qué GannetLabs"
           title="Tecnología aplicada con criterio de negocio"
           highlight="criterio de negocio"
-          description="No somos una agencia de desarrollo genérica. Somos un equipo que entiende tanto de tecnología como de cómo funciona un negocio real."
+          description="Somos un equipo que entiende de inteligencia artificial y de cómo funciona un negocio real. Tecnología como medio, no como fin."
         />
 
         <div className="mt-20 grid gap-5 sm:grid-cols-2">

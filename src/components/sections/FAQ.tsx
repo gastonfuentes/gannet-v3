@@ -16,6 +16,11 @@ const faqs = [
       "Sí. Trabajamos con pymes, emprendimientos que quieren crecer y equipos internos de empresas medianas. El factor clave no es el tamaño: es que haya un problema real que resolver y ganas de mejorarlo con tecnología.",
   },
   {
+    question: "¿Qué significa que aplican inteligencia artificial?",
+    answer:
+      "Que tus sistemas no solo guardan información: la usan. Construimos agentes y automatizaciones que leen tus datos reales —ventas, stock, clientes, documentos— y responden, clasifican, avisan y ejecutan tareas por tu equipo. Todo conectado a tus herramientas vía API.",
+  },
+  {
     question: "¿Cuánto tiempo lleva un proyecto típico?",
     answer:
       "Depende del alcance. Un sitio web o una automatización simple puede estar lista en 2 a 4 semanas. Un sistema más complejo con integraciones y lógica de negocio puede llevar de 6 a 12 semanas. Siempre arrancamos con una propuesta clara de tiempos antes de empezar.",
@@ -33,7 +38,7 @@ const faqs = [
   {
     question: "¿Puedo seguir usando mis herramientas actuales?",
     answer:
-      "Sí, en la mayoría de los casos. Antes de proponer cambiar algo, analizamos qué ya tenés y cómo aprovecharlo mejor. Rara vez es necesario tirar todo y empezar de cero. Preferimos construir sobre lo que funciona.",
+      "Sí, es nuestro punto de partida. Nos adaptamos al software que ya usás —DUX, Tango, Tienda Nube, Google Drive o el que sea— y construimos las soluciones sobre él. Integramos tu ecosistema en lugar de reemplazarlo.",
   },
 ];
 
