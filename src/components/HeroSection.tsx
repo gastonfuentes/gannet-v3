@@ -33,8 +33,11 @@ const HERO_ROTATING_PHRASES = [
 // query than a standalone `leading-*`, so it would win the cascade and
 // silently override it. 1.4 clears the font's ~1.25em content area, which
 // the rotating phrase's `overflow-hidden` mask would otherwise clip.
+// Sizes are arbitrary rather than Tailwind steps: the next step up at this
+// scale is ~33% larger, which overflows the line, so each breakpoint sits
+// about 12% above the step below it.
 const HERO_LINE_SIZE =
-  "text-2xl/[1.4] font-medium sm:text-3xl/[1.4] md:text-5xl/[1.4] lg:text-6xl/[1.4] xl:text-7xl/[1.4]";
+  "text-[1.7rem]/[1.4] font-medium sm:text-[2.1rem]/[1.4] md:text-[3.4rem]/[1.4] lg:text-[4.2rem]/[1.4] xl:text-[5rem]/[1.4]";
 
 const navLinks = [
   { label: "Inicio", href: "#inicio" },
