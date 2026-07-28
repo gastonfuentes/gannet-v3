@@ -71,6 +71,10 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      transitionTimingFunction: {
+        /** Heavy, physical easing used across section micro-interactions. */
+        spatial: "cubic-bezier(0.32, 0.72, 0, 1)",
+      },
       keyframes: {
         "accordion-down": {
           from: {
