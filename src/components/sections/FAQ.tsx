@@ -62,37 +62,50 @@ const faqs = [
 
 const FAQ = () => {
   return (
-    <section id="faq" className="relative px-6 py-32 lg:px-8 lg:py-52">
+    <section id="faq" className="relative px-4 py-32 md:px-6 lg:px-8 lg:py-52">
       <div className="mx-auto max-w-3xl">
         <SectionHeading
-          title="Preguntas frecuentes"
-          description="Las dudas más comunes antes de arrancar."
+          eyebrow="Preguntas frecuentes"
+          title="Las dudas más comunes antes de arrancar"
+          highlight="antes de arrancar"
         />
 
-        <FadeUp delay={0.1} className="mt-12">
-          <Accordion type="single" collapsible className="w-full">
+        <FadeUp delay={0.1} className="mt-16">
+          {/* Each question is its own bezel, so an open answer reads as one
+              object rather than as text spilling out of a list. */}
+          <Accordion type="single" collapsible className="flex w-full flex-col gap-3">
             {faqs.map((faq, i) => (
               <AccordionItem
                 key={faq.question}
                 value={`item-${i}`}
-                className="border-border/60"
+                className="group/faq rounded-[1.75rem] border-0 bg-white/[0.03] p-1.5 ring-1 ring-white/[0.06] transition-all duration-700 ease-spatial hover:ring-white/[0.14] data-[state=open]:ring-brand/25"
               >
-                <AccordionTrigger className="text-left font-display text-base font-medium text-foreground hover:text-brand hover:no-underline">
-                  {faq.question}
-                </AccordionTrigger>
-                <AccordionContent className="text-sm text-muted-foreground">
-                  {faq.answer}
-                </AccordionContent>
+                <div className="overflow-hidden rounded-[1.375rem] bg-card px-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                  <AccordionTrigger className="py-5 text-left font-display text-base font-medium tracking-tight text-foreground hover:no-underline data-[state=open]:text-brand">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-5 text-sm leading-relaxed text-muted-foreground">
+                    {faq.answer}
+                  </AccordionContent>
+                </div>
               </AccordionItem>
             ))}
           </Accordion>
         </FadeUp>
 
-        <FadeUp delay={0.2} className="mt-10 flex justify-center">
-          <Button asChild variant="heroOutline" size="pill" className="gap-1.5">
+        <FadeUp delay={0.2} className="mt-12 flex justify-center">
+          <Button
+            asChild
+            variant="heroOutline"
+            size="pillLg"
+            className="group/cta h-12 pr-2 transition-transform duration-500 ease-spatial active:scale-[0.98]"
+          >
             <a href="#contacto">
               Todavía tengo una duda
-              <ArrowRight className="h-4 w-4" />
+              {/* Button-in-button: the arrow gets its own island. */}
+              <span className="ml-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/10 transition-transform duration-500 ease-spatial group-hover/cta:translate-x-1 group-hover/cta:scale-105">
+                <ArrowRight strokeWidth={1.5} className="h-4 w-4" />
+              </span>
             </a>
           </Button>
         </FadeUp>

@@ -119,9 +119,13 @@
     background-size: 56px 56px;
   }
 
-  /* Seamless marquee for client/partner logos */
+  /* Seamless marquee for client/partner logos.
+     The duration is 8 loops of the hero video (7.958s each), so the marquee
+     and the wave behind the hero drift in and out of phase together instead
+     of fighting each other. Halving the previous speed also gives the logos
+     the same unhurried pace as the wave. */
   .animate-marquee {
-    animation: marquee 32s linear infinite;
+    animation: marquee 63.664s linear infinite;
   }
 
   @keyframes marquee {

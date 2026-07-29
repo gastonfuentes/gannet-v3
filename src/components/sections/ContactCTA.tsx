@@ -71,7 +71,7 @@ const ContactCTA = () => {
   };
 
   return (
-    <section id="contacto" className="relative px-6 py-32 lg:px-8 lg:py-52">
+    <section id="contacto" className="relative px-4 py-32 md:px-6 lg:px-8 lg:py-52">
       <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-2 lg:gap-16">
         {/* Left: copy */}
         <div>
@@ -106,14 +106,17 @@ const ContactCTA = () => {
           </FadeUp>
         </div>
 
-        {/* Right: form */}
+        {/* Right: form, in the same double-bezel shell as every card. */}
         <FadeUp delay={0.15}>
+          <div className="group relative rounded-[2rem] bg-white/[0.03] p-1.5 ring-1 ring-white/[0.06] transition-all duration-700 ease-spatial focus-within:ring-brand/25 hover:ring-white/[0.14]">
           <form
             onSubmit={handleSubmit(onSubmit)}
-            className="rounded-2xl border border-border/60 bg-card/60 p-6 lg:p-8"
+            className="relative overflow-hidden rounded-[1.625rem] bg-card p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] lg:p-8"
             noValidate
           >
-            <div className="space-y-5">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(60%_100%_at_50%_0%,hsl(var(--brand)/0.12),transparent)] opacity-0 transition-opacity duration-700 ease-spatial group-hover:opacity-100" />
+
+            <div className="relative space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="name">Nombre</Label>
                 <Input id="name" placeholder="Tu nombre" {...register("name")} />
@@ -177,14 +180,20 @@ const ContactCTA = () => {
             <Button
               type="submit"
               variant="hero"
-              size="pill"
-              className="mt-6 w-full gap-1.5"
+              size="pillLg"
+              className="group/cta relative mt-6 h-12 w-full pr-2 transition-transform duration-500 ease-spatial active:scale-[0.98]"
               disabled={isSubmitting}
             >
               {isSubmitting ? "Enviando..." : "Agendar una reunión"}
-              {!isSubmitting && <ArrowUpRight className="h-4 w-4" />}
+              {!isSubmitting && (
+                // Button-in-button: the arrow gets its own island.
+                <span className="ml-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/10 transition-transform duration-500 ease-spatial group-hover/cta:translate-x-1 group-hover/cta:scale-105">
+                  <ArrowUpRight strokeWidth={1.5} className="h-4 w-4" />
+                </span>
+              )}
             </Button>
           </form>
+          </div>
         </FadeUp>
       </div>
     </section>
