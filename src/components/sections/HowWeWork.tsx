@@ -37,7 +37,7 @@ const gridVariants: Variants = {
 const HowWeWork = () => {
   const reduceMotion = useReducedMotion();
 
-  const cardVariants: Variants = {
+  const blockVariants: Variants = {
     hidden: reduceMotion ? { opacity: 0 } : { opacity: 0, y: 64, filter: "blur(8px)" },
     visible: {
       opacity: 1,
@@ -54,56 +54,84 @@ const HowWeWork = () => {
           eyebrow="Cómo trabajamos"
           title="Trabajamos con foco, claridad y validación rápida"
           highlight="validación rápida"
-          description="Un proceso pensado para negocios que no tienen tiempo para proyectos interminables."
+          description="Un proceso pensado para negocios que no tienen tiempo para proyectos interminables. Tecnología como medio, no como fin."
         />
 
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-80px" }}
-          variants={gridVariants}
-          className="mt-20 grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-5 lg:grid-cols-4"
-        >
-          {steps.map((step, i) => (
-            <motion.div key={step.title} variants={cardVariants}>
-              {/* Same double-bezel language as Problems, Integrations, Products. */}
-              <div className="group relative h-full rounded-[2rem] bg-white/[0.03] p-1.5 ring-1 ring-white/[0.06] transition-all duration-700 ease-spatial hover:ring-white/[0.14]">
-                <div className="relative h-full overflow-hidden rounded-[1.625rem] bg-card p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] lg:p-8">
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(60%_100%_at_50%_0%,hsl(var(--brand)/0.12),transparent)] opacity-0 transition-opacity duration-700 ease-spatial group-hover:opacity-100" />
+        {/* Split layout: the photo carries the human side, the steps carry the
+            process. Absorbed the former WhyGannet section, whose four points
+            restated these ones almost verbatim. */}
+        <div className="mt-20 grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-2">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-80px" }}
+            variants={blockVariants}
+            className="relative h-full"
+          >
+            {/* No frame: two crossed gradient masks dissolve all four edges so
+                the photo emerges from the background instead of sitting in a
+                box. `mask-composite` intersects them — Safari needs the
+                -webkit- pair, hence both declarations. */}
+            <img
+              src="/equipo-trabajando.jpg"
+              alt="Dos integrantes del equipo de GannetLabs trabajando frente a dos monitores con paneles de datos y código"
+              width={1122}
+              height={1402}
+              loading="lazy"
+              decoding="async"
+              className="aspect-[4/5] h-full w-full object-cover object-center lg:aspect-auto [mask-image:linear-gradient(to_bottom,transparent,black_16%,black_72%,transparent),linear-gradient(to_right,transparent,black_10%,black_90%,transparent)] [mask-composite:intersect] [-webkit-mask-composite:source-in]"
+            />
+          </motion.div>
 
-                  {/* Oversized step number as a watermark. The inner core's
-                      overflow-hidden is what keeps it from escaping the card. */}
-                  <span
-                    aria-hidden="true"
-                    className="pointer-events-none absolute -bottom-6 -right-2 font-display text-[7rem] font-bold leading-none text-white/[0.03]"
-                  >
-                    0{i + 1}
-                  </span>
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-80px" }}
+            variants={gridVariants}
+            className="flex flex-col gap-4 md:gap-5"
+          >
+            {steps.map((step, i) => (
+              <motion.div key={step.title} variants={blockVariants} className="flex-1">
+                <div className="group/card relative h-full rounded-[2rem] bg-white/[0.03] p-1.5 ring-1 ring-white/[0.06] transition-all duration-700 ease-spatial hover:ring-white/[0.14]">
+                  <div className="relative flex h-full items-center overflow-hidden rounded-[1.625rem] bg-card p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] lg:p-7">
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(60%_100%_at_50%_0%,hsl(var(--brand)/0.12),transparent)] opacity-0 transition-opacity duration-700 ease-spatial group-hover/card:opacity-100" />
 
-                  <div className="relative">
-                    {/* The step number takes the slot the icon holds elsewhere,
-                        so every card in the site shares one anatomy. */}
-                    <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] font-display text-base font-bold text-brand ring-1 ring-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-transform duration-700 ease-spatial group-hover:scale-[1.06]">
+                    {/* Oversized step number as a watermark. The inner core's
+                        overflow-hidden is what keeps it from escaping. */}
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute -bottom-5 -right-2 font-display text-[6rem] font-bold leading-none text-white/[0.03]"
+                    >
                       0{i + 1}
+                    </span>
+
+                    <div className="relative flex items-start gap-4 lg:items-center">
+                      {/* The step number takes the slot the icon holds in the
+                          other sections, so every card shares one anatomy. */}
+                      <div className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/[0.04] font-display text-base font-bold text-brand ring-1 ring-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-transform duration-700 ease-spatial group-hover/card:scale-[1.06]">
+                        0{i + 1}
+                      </div>
+                      <div>
+                        <h3 className="font-display text-lg font-semibold tracking-tight text-foreground">
+                          {step.title}
+                        </h3>
+                        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                          {step.description}
+                        </p>
+                      </div>
                     </div>
-                    <h3 className="mt-6 font-display text-lg font-semibold tracking-tight text-foreground">
-                      {step.title}
-                    </h3>
-                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                      {step.description}
-                    </p>
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
 
         <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
-          variants={cardVariants}
+          variants={blockVariants}
           className="mt-14 flex justify-center"
         >
           <Button
