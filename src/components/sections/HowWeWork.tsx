@@ -1,7 +1,9 @@
 import { ArrowRight } from "lucide-react";
-import { FadeUp } from "@/components/animations/FadeUp";
+import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import SectionHeading from "@/components/sections/SectionHeading";
+
+const EASE_SPATIAL = [0.32, 0.72, 0, 1] as const;
 
 const steps = [
   {
@@ -26,40 +28,99 @@ const steps = [
   },
 ];
 
+/** Orchestration only — staggerChildren must live in the parent's variant. */
+const gridVariants: Variants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.12 } },
+};
+
 const HowWeWork = () => {
+  const reduceMotion = useReducedMotion();
+
+  const cardVariants: Variants = {
+    hidden: reduceMotion ? { opacity: 0 } : { opacity: 0, y: 64, filter: "blur(8px)" },
+    visible: {
+      opacity: 1,
+      y: 0,
+      filter: "blur(0px)",
+      transition: { duration: reduceMotion ? 0.3 : 0.9, ease: EASE_SPATIAL },
+    },
+  };
+
   return (
-    <section id="como-trabajamos" className="relative px-6 py-32 lg:px-8 lg:py-52">
+    <section id="como-trabajamos" className="relative px-4 py-32 md:px-6 lg:px-8 lg:py-52">
       <div className="mx-auto max-w-7xl">
         <SectionHeading
+          eyebrow="Cómo trabajamos"
           title="Trabajamos con foco, claridad y validación rápida"
           highlight="validación rápida"
           description="Un proceso pensado para negocios que no tienen tiempo para proyectos interminables."
         />
 
-        <div className="mt-20 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-80px" }}
+          variants={gridVariants}
+          className="mt-20 grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-5 lg:grid-cols-4"
+        >
           {steps.map((step, i) => (
-            <FadeUp key={step.title} delay={i * 0.1}>
-              <div className="relative h-full rounded-2xl border border-border/60 bg-card/60 p-6">
-                <span className="font-display text-4xl font-bold text-brand/30">
-                  0{i + 1}
-                </span>
-                <h3 className="mt-3 font-display text-lg font-semibold text-foreground">
-                  {step.title}
-                </h3>
-                <p className="mt-2 text-sm text-muted-foreground">{step.description}</p>
-              </div>
-            </FadeUp>
-          ))}
-        </div>
+            <motion.div key={step.title} variants={cardVariants}>
+              {/* Same double-bezel language as Problems, Integrations, Products. */}
+              <div className="group relative h-full rounded-[2rem] bg-white/[0.03] p-1.5 ring-1 ring-white/[0.06] transition-all duration-700 ease-spatial hover:ring-white/[0.14]">
+                <div className="relative h-full overflow-hidden rounded-[1.625rem] bg-card p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] lg:p-8">
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(60%_100%_at_50%_0%,hsl(var(--brand)/0.12),transparent)] opacity-0 transition-opacity duration-700 ease-spatial group-hover:opacity-100" />
 
-        <FadeUp delay={0.2} className="mt-12 flex justify-center">
-          <Button asChild variant="hero" size="pillLg" className="gap-1.5">
+                  {/* Oversized step number as a watermark. The inner core's
+                      overflow-hidden is what keeps it from escaping the card. */}
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -bottom-6 -right-2 font-display text-[7rem] font-bold leading-none text-white/[0.03]"
+                  >
+                    0{i + 1}
+                  </span>
+
+                  <div className="relative">
+                    {/* The step number takes the slot the icon holds elsewhere,
+                        so every card in the site shares one anatomy. */}
+                    <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] font-display text-base font-bold text-brand ring-1 ring-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-transform duration-700 ease-spatial group-hover:scale-[1.06]">
+                      0{i + 1}
+                    </div>
+                    <h3 className="mt-6 font-display text-lg font-semibold tracking-tight text-foreground">
+                      {step.title}
+                    </h3>
+                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                      {step.description}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={cardVariants}
+          className="mt-14 flex justify-center"
+        >
+          <Button
+            asChild
+            variant="hero"
+            size="pillLg"
+            className="group/cta h-12 pr-2 transition-transform duration-500 ease-spatial active:scale-[0.98]"
+          >
             <a href="#contacto">
               Coordinar una llamada
-              <ArrowRight className="h-4 w-4" />
+              {/* Button-in-button: the arrow gets its own island. */}
+              <span className="ml-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/10 transition-transform duration-500 ease-spatial group-hover/cta:translate-x-1 group-hover/cta:scale-105">
+                <ArrowRight strokeWidth={1.5} className="h-4 w-4" />
+              </span>
             </a>
           </Button>
-        </FadeUp>
+        </motion.div>
       </div>
     </section>
   );
