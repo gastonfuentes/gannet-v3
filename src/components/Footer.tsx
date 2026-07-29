@@ -1,11 +1,17 @@
+import { ArrowUpRight } from "lucide-react";
 import Logo from "@/components/icons/Logo";
 
 const navLinks = [
-  { label: "Productos", href: "#productos" },
   { label: "Integraciones", href: "#integraciones" },
   { label: "Cómo trabajamos", href: "#como-trabajamos" },
   { label: "FAQ", href: "#faq" },
   { label: "Contacto", href: "#contacto" },
+];
+
+/** Standalone pages, not sections: these leave the landing. */
+const productLinks = [
+  { label: "GANNET OS", href: "/gannet-os/" },
+  { label: "Modulitia", href: "/modulitia/" },
 ];
 
 const contactLinks = [
@@ -20,7 +26,7 @@ const Footer = () => {
   return (
     <footer className="border-t border-border/40 px-6 py-14 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <div className="grid gap-10 md:grid-cols-3">
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
           <div className="md:col-span-1">
             <Logo className="h-7 w-auto" />
             <p className="mt-4 max-w-xs text-sm text-muted-foreground">
@@ -38,6 +44,25 @@ const Footer = () => {
                     className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                   >
                     {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-display text-sm font-semibold text-foreground">
+              Productos más vendidos
+            </h4>
+            <ul className="mt-4 space-y-2">
+              {productLinks.map((product) => (
+                <li key={product.label}>
+                  <a
+                    href={product.href}
+                    className="group inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {product.label}
+                    <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-500 ease-spatial group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                   </a>
                 </li>
               ))}

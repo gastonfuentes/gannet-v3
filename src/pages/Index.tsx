@@ -1,7 +1,6 @@
 import HeroSection from "@/components/HeroSection";
 import Problems from "@/components/sections/Problems";
 import Integrations from "@/components/sections/Integrations";
-import Products from "@/components/sections/Products";
 import Clients from "@/components/sections/Clients";
 import HowWeWork from "@/components/sections/HowWeWork";
 import WhyGannet from "@/components/sections/WhyGannet";
@@ -20,7 +19,6 @@ const Index = () => {
       <HowWeWork />
       <WhyGannet />
       <Verticals />
-      <Products />
       <FAQ />
       <ContactCTA />
       <Footer />

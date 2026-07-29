@@ -41,7 +41,6 @@ const HERO_LINE_SIZE =
 
 const navLinks = [
   { label: "Inicio", href: "#inicio" },
-  { label: "Productos", href: "#productos" },
   { label: "Integraciones", href: "#integraciones" },
   { label: "Cómo trabajamos", href: "#como-trabajamos" },
   { label: "FAQ", href: "#faq" },
