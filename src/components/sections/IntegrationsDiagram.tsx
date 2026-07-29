@@ -19,13 +19,15 @@ export const INTEGRATION_NODES: IntegrationNode[] = [
   { name: "Odoo", category: "ERP", slug: "odoo" },
   { name: "Tango Gestión", category: "ERP", slug: "tango" },
   { name: "Tiendanube", category: "Ecommerce", slug: "tiendanube" },
-  { name: "DUX Software", category: "ERP", slug: "dux", logo: "/logoduxsvg.svg" },
+  { name: "DUX Software", category: "ERP", slug: "dux" },
   { name: "HubSpot", category: "CRM", slug: "hubspot" },
   { name: "Mercado Libre", category: "Marketplace", slug: "mercadolibre" },
   { name: "SAP Business One", category: "ERP", slug: "sap" },
   { name: "Finnegans", category: "ERP", slug: "finnegans" },
   { name: "Fudo", category: "Gastronomía", slug: "fudo" },
   { name: "Tokko Broker", category: "Inmobiliarias", slug: "tokko" },
+  { name: "Google Drive", category: "Documentos", slug: "drive" },
+  { name: "Gmail", category: "Email", slug: "gmail" },
 ];
 
 /** Diagram geometry, in viewBox percentage units shared by SVG and DOM. */
@@ -73,7 +75,9 @@ const NodeMark = ({ node }: { node: IntegrationNode }) => {
       alt={node.name}
       loading="lazy"
       onError={() => setFailed(true)}
-      className="max-h-7 w-auto max-w-[92px] object-contain brightness-0 invert"
+      // Every logo ships a viewBox tightened to its own artwork, so the width
+      // cap is what does the work; the height cap only guards the tallest.
+      className="max-h-8 w-auto max-w-[92px] object-contain brightness-0 invert"
     />
   );
 };
