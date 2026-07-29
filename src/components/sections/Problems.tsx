@@ -1,8 +1,19 @@
 import {
+  ArrowDownRight,
   ArrowRight,
-  ScanSearch,
-  TrendingDown,
   Compass,
+  EyeOff,
+  Hourglass,
+  KeyRound,
+  Repeat,
+  Route,
+  ScanSearch,
+  Search,
+  Shuffle,
+  TrendingDown,
+  TriangleAlert,
+  Unplug,
+  Weight,
   type LucideIcon,
 } from "lucide-react";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
@@ -13,10 +24,15 @@ import { cn } from "@/lib/utils";
 /** Heavy, physical easing shared by every transition in this section. */
 const EASE_SPATIAL = [0.32, 0.72, 0, 1] as const;
 
+type Item = {
+  icon: LucideIcon;
+  text: string;
+};
+
 type Panel = {
   icon: LucideIcon;
   kicker: string;
-  items: string[];
+  items: Item[];
   /** Drives the asymmetric 6-column bento on large screens. */
   span: string;
   /** The consequence panel carries a brighter bezel and brand-tinted markers. */
@@ -28,12 +44,21 @@ const panels: Panel[] = [
     icon: ScanSearch,
     kicker: "¿Te resulta familiar alguna de estas situaciones?",
     items: [
-      "Hay tareas repetitivas que consumen demasiado tiempo.",
-      "La información está distribuida entre Excel, WhatsApp, correos y distintos sistemas.",
-      "Los procesos dependen demasiado de personas específicas.",
-      "Se pierde tiempo buscando información o realizando seguimientos manuales.",
-      "Existen oportunidades de mejora, pero no está claro por dónde empezar.",
-      "La tecnología actual ya no acompaña el crecimiento de la empresa.",
+      { icon: Repeat, text: "Hay tareas repetitivas que consumen demasiado tiempo." },
+      {
+        icon: Shuffle,
+        text: "La información está distribuida entre Excel, WhatsApp, correos y distintos sistemas.",
+      },
+      { icon: KeyRound, text: "Los procesos dependen demasiado de personas específicas." },
+      {
+        icon: Search,
+        text: "Se pierde tiempo buscando información o realizando seguimientos manuales.",
+      },
+      {
+        icon: Route,
+        text: "Existen oportunidades de mejora, pero no está claro por dónde empezar.",
+      },
+      { icon: Unplug, text: "La tecnología actual ya no acompaña el crecimiento de la empresa." },
     ],
     span: "lg:col-span-3",
   },
@@ -41,11 +66,11 @@ const panels: Panel[] = [
     icon: TrendingDown,
     kicker: "Mientras estos problemas siguen presentes...",
     items: [
-      "Se invierten horas en tareas que podrían automatizarse.",
-      "Se generan errores, demoras y costos innecesarios.",
-      "La información llega tarde o es difícil de analizar.",
-      "Se pierden oportunidades comerciales y de mejora.",
-      "El crecimiento depende de trabajar más, en lugar de trabajar mejor.",
+      { icon: Hourglass, text: "Se invierten horas en tareas que podrían automatizarse." },
+      { icon: TriangleAlert, text: "Se generan errores, demoras y costos innecesarios." },
+      { icon: EyeOff, text: "La información llega tarde o es difícil de analizar." },
+      { icon: ArrowDownRight, text: "Se pierden oportunidades comerciales y de mejora." },
+      { icon: Weight, text: "El crecimiento depende de trabajar más, en lugar de trabajar mejor." },
     ],
     span: "lg:col-span-3",
     featured: true,
@@ -99,20 +124,27 @@ const PanelCard = ({ panel }: { panel: Panel }) => (
       {panel.kicker}
     </h3>
 
-    <ul className="mt-6 space-y-4">
+    {/* Each item is an inset tile, so the bezel language repeats one level
+        down instead of degrading into a plain bullet list. */}
+    <ul className="mt-6 space-y-2.5">
       {panel.items.map((item) => (
-        <li key={item} className="flex gap-3.5 text-sm leading-relaxed text-muted-foreground">
-          {/* Typographic marker only — this section carries no illustrations.
-              The h-6 wrapper centres the dot on the first line of text. */}
-          <span aria-hidden className="flex h-6 w-1 shrink-0 items-center">
-            <span
-              className={cn(
-                "h-1 w-1 rounded-full",
-                panel.featured ? "bg-brand/70" : "bg-white/25",
-              )}
-            />
+        <li
+          key={item.text}
+          className="group/item flex items-start gap-4 rounded-2xl bg-white/[0.02] p-4 ring-1 ring-white/[0.05] transition-all duration-500 ease-spatial hover:bg-white/[0.045] hover:ring-white/[0.09]"
+        >
+          {/* Same chip as the card's leading slot, one size down. */}
+          <span
+            aria-hidden
+            className={cn(
+              "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/[0.04] ring-1 ring-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-transform duration-500 ease-spatial group-hover/item:scale-[1.08]",
+              panel.featured ? "text-brand/80" : "text-foreground/70",
+            )}
+          >
+            <item.icon strokeWidth={1.25} className="h-4 w-4" />
           </span>
-          {item}
+          <span className="pt-1 text-sm leading-relaxed text-muted-foreground">
+            {item.text}
+          </span>
         </li>
       ))}
     </ul>
@@ -163,42 +195,56 @@ const Problems = () => {
             </motion.div>
           ))}
 
-          {/* Closing statement: full width, and the only card that owns the CTA. */}
-          <motion.div variants={cardVariants} className="lg:col-span-6">
-            <Bezel featured className="lg:p-12">
-              <div className="flex flex-col gap-10 lg:flex-row lg:items-center lg:justify-between lg:gap-16">
-                <div className="max-w-2xl">
-                  <IconChip icon={Compass} />
+          {/* Closing statement: half the width, and the only card that owns the CTA. */}
+          <motion.div variants={cardVariants} className="lg:col-span-3">
+            <Bezel featured className="flex flex-col lg:p-10">
+              <IconChip icon={Compass} />
 
-                  <h3 className="mt-6 font-display text-2xl font-semibold tracking-tight text-foreground">
-                    Ahí es donde comenzamos.
-                  </h3>
-                  <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-                    Analizamos los procesos, detectamos oportunidades y diseñamos soluciones
-                    tecnológicas que generan un impacto real en la operación diaria.
-                  </p>
-                  <p className="mt-4 text-base leading-relaxed text-foreground/90">
-                    No implementamos tecnología porque sí. La implementamos donde realmente
-                    aporta valor.
-                  </p>
-                </div>
+              <h3 className="mt-6 font-display text-2xl font-semibold tracking-tight text-foreground">
+                Ahí es donde comenzamos.
+              </h3>
+              <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+                Analizamos los procesos, detectamos oportunidades y diseñamos soluciones
+                tecnológicas que generan un impacto real en la operación diaria.
+              </p>
 
-                <Button
-                  asChild
-                  variant="heroOutline"
-                  size="pillLg"
-                  className="group/cta h-12 shrink-0 self-start pr-2 transition-transform duration-500 ease-spatial active:scale-[0.98]"
-                >
-                  <a href="#integraciones">
-                    Ver cómo lo resolvemos
-                    {/* Button-in-button: the arrow lives in its own nested island. */}
-                    <span className="ml-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/10 transition-transform duration-500 ease-spatial group-hover/cta:translate-x-1 group-hover/cta:scale-105">
-                      <ArrowRight strokeWidth={1.5} className="h-4 w-4" />
-                    </span>
-                  </a>
-                </Button>
-              </div>
+              <Button
+                asChild
+                variant="heroOutline"
+                size="pillLg"
+                className="group/cta mt-8 h-12 self-start pr-2 transition-transform duration-500 ease-spatial active:scale-[0.98]"
+              >
+                <a href="#integraciones">
+                  Ver cómo lo resolvemos
+                  {/* Button-in-button: the arrow lives in its own nested island. */}
+                  <span className="ml-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/10 transition-transform duration-500 ease-spatial group-hover/cta:translate-x-1 group-hover/cta:scale-105">
+                    <ArrowRight strokeWidth={1.5} className="h-4 w-4" />
+                  </span>
+                </a>
+              </Button>
             </Bezel>
+          </motion.div>
+
+          {/* Agency statement. Deliberately unframed — no tray, no ring, no
+              background. The type scale is the only thing holding it. */}
+          <motion.div
+            variants={cardVariants}
+            className="flex items-center px-2 py-10 lg:col-span-3 lg:px-10 lg:py-0"
+          >
+            <blockquote>
+              {/* Brand rule instead of a quotation glyph: quieter, and it keeps
+                  the section free of ornament. */}
+              <span
+                aria-hidden
+                className="block h-px w-16 bg-gradient-to-r from-brand to-transparent"
+              />
+              <p className="mt-8 font-display text-2xl font-semibold leading-snug tracking-tight text-foreground/45 md:text-3xl md:leading-snug">
+                No implementamos tecnología porque sí.{" "}
+                <span className="gradient-text">
+                  La implementamos donde realmente aporta valor.
+                </span>
+              </p>
+            </blockquote>
           </motion.div>
         </motion.div>
       </div>
