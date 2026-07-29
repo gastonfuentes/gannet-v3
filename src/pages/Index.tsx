@@ -3,6 +3,7 @@ import Problems from "@/components/sections/Problems";
 import Integrations from "@/components/sections/Integrations";
 import Clients from "@/components/sections/Clients";
 import HowWeWork from "@/components/sections/HowWeWork";
+import Partnership from "@/components/sections/Partnership";
 import Verticals from "@/components/sections/Verticals";
 import FAQ from "@/components/sections/FAQ";
 import ContactCTA from "@/components/sections/ContactCTA";
@@ -16,6 +17,7 @@ const Index = () => {
       <Integrations />
       <Clients />
       <HowWeWork />
+      <Partnership />
       <Verticals />
       <FAQ />
       <ContactCTA />

@@ -9,7 +9,25 @@ import { FadeUp } from "@/components/animations/FadeUp";
 import { Button } from "@/components/ui/button";
 import SectionHeading from "@/components/sections/SectionHeading";
 
+// Ordered by how much anxiety each question causes, not by business logic:
+// price and data security block the decision, so they come first. Nobody
+// scrolls to the ninth item to find out whether they can afford you.
 const faqs = [
+  {
+    question: "¿Qué incluye la suscripción mensual?",
+    answer:
+      "El soporte de todo lo que ya está funcionando y las nuevas soluciones que tu negocio vaya necesitando. No nos gusta entregar un sistema, cobrar y desaparecer: preferimos ser un socio de tu empresa, que entiende cómo trabajás y mejora tus herramientas mes a mes.",
+  },
+  {
+    question: "¿Qué pasa con mis datos? ¿Es seguro?",
+    answer:
+      "Cada cliente tiene su propio servidor privado y su propia base de datos. Tus datos no se mezclan con los de otras empresas ni viven en una plataforma compartida: corren en una infraestructura dedicada a tu negocio. Nos conectamos a tus sistemas solo con los permisos que vos nos habilitás y podés revocarlos cuando quieras. Tu información tampoco se usa para entrenar modelos de inteligencia artificial. Y si tu empresa necesita firmar un acuerdo de confidencialidad, lo firmamos.",
+  },
+  {
+    question: "¿Qué pasa si en algún momento dejo el servicio?",
+    answer:
+      "Cancelás cuando quieras, sin contrato de permanencia. Te exportamos tu base de datos completa, así que los datos son tuyos y te los llevás siempre. Lo que no se transfiere es el desarrollo: las automatizaciones, los agentes y las integraciones que construimos.",
+  },
   {
     question: "¿Trabajan con negocios de cualquier tamaño?",
     answer:
@@ -21,24 +39,24 @@ const faqs = [
       "Que tus sistemas no solo guardan información: la usan. Construimos agentes y automatizaciones que leen tus datos reales —ventas, stock, clientes, documentos— y responden, clasifican, avisan y ejecutan tareas por tu equipo. Todo conectado a tus herramientas vía API.",
   },
   {
-    question: "¿Cuánto tiempo lleva un proyecto típico?",
+    question: "¿Cuánto tiempo lleva ver la primera solución funcionando?",
     answer:
-      "Depende del alcance. Un sitio web o una automatización simple puede estar lista en 2 a 4 semanas. Un sistema más complejo con integraciones y lógica de negocio puede llevar de 6 a 12 semanas. Siempre arrancamos con una propuesta clara de tiempos antes de empezar.",
+      "Depende del alcance, pero trabajamos para que veas algo andando rápido. Una automatización simple puede estar lista en 2 a 4 semanas. Una integración entre varios sistemas, con lógica de negocio más compleja, puede llevar de 6 a 12. Siempre arrancamos con una propuesta clara de tiempos.",
+  },
+  {
+    question: "¿Y si mi software es viejo o no tiene API?",
+    answer:
+      "Casi siempre hay una forma de conectarlo, aunque no sea la obvia: exportaciones automáticas, lectura de archivos, acceso a la base de datos o procesar los documentos que el sistema ya genera. Y si de verdad no hay manera, te lo decimos de entrada en lugar de hacerte perder tiempo.",
+  },
+  {
+    question: "¿Necesito tener a alguien técnico en mi equipo?",
+    answer:
+      "No. De la parte técnica nos ocupamos nosotros, y te dejamos todo listo para usar con capacitación para tu equipo. Lo que sí necesitamos es alguien que conozca bien cómo funciona el negocio: esa persona nos sirve más que un perfil técnico.",
   },
   {
     question: "¿Necesito tener todo claro antes de contactarlos?",
     answer:
       "No. Muchas veces el primer paso es entender juntos cuál es el problema real. Podés llegar con 'tengo este dolor' o 'quiero mejorar esto' y de ahí arrancamos. La primera conversación es sin compromiso.",
-  },
-  {
-    question: "¿Qué pasa después de que entregan el proyecto?",
-    answer:
-      "Depende del acuerdo. Algunos proyectos son de entrega única con documentación y capacitación incluida. Otros tienen soporte continuo o mejoras iterativas. Lo definimos antes de empezar para que no haya sorpresas.",
-  },
-  {
-    question: "¿Puedo seguir usando mis herramientas actuales?",
-    answer:
-      "Sí, es nuestro punto de partida. Nos adaptamos al software que ya usás —DUX, Tango, Tienda Nube, Google Drive o el que sea— y construimos las soluciones sobre él. Integramos tu ecosistema en lugar de reemplazarlo.",
   },
 ];
 
