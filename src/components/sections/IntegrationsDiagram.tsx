@@ -31,10 +31,10 @@ export const INTEGRATION_NODES: IntegrationNode[] = [
   { name: "Mercado Libre", category: "Marketplace", slug: "mercadolibre" },
   { name: "HubSpot", category: "CRM", slug: "hubspot" },
   { name: "DUX Software", category: "ERP", slug: "dux" },
-  { name: "WhatsApp", category: "Mensajería", slug: "whatsapp" },
+  { name: "Odoo", category: "ERP", slug: "odoo" },
   { name: "Gmail", category: "Email", slug: "gmail" },
   { name: "Google Drive", category: "Documentos", slug: "drive" },
-  { name: "Odoo", category: "ERP", slug: "odoo" },
+  { name: "WhatsApp", category: "Mensajería", slug: "whatsapp" },
 ];
 
 /**
