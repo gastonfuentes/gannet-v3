@@ -1,4 +1,4 @@
-import { Search, Plug, Sparkles, type LucideIcon } from "lucide-react";
+import { Search, Plug, Sparkles, TrendingUp, type LucideIcon } from "lucide-react";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import SectionHeading from "@/components/sections/SectionHeading";
 import IntegrationsDiagram from "@/components/sections/IntegrationsDiagram";
@@ -23,6 +23,14 @@ const steps: { icon: LucideIcon; title: string; description: string }[] = [
     title: "Sumamos IA",
     description:
       "Construimos agentes y automatizaciones que trabajan sobre tus datos reales, dentro de tu ecosistema.",
+  },
+  // The only step told from the customer's side. The other three describe what
+  // we do; this one is the payoff, so the shift in voice is deliberate.
+  {
+    icon: TrendingUp,
+    title: "Decidís mejor",
+    description:
+      "Tus datos ordenados, en un solo lugar y a tiempo. Decidís con información real en vez de intuición.",
   },
 ];
 
@@ -70,7 +78,7 @@ const Integrations = () => {
           whileInView="visible"
           viewport={{ once: true, margin: "-80px" }}
           variants={gridVariants}
-          className="mt-20 grid grid-cols-1 gap-4 md:gap-5 sm:grid-cols-3"
+          className="mt-20 grid grid-cols-1 gap-4 md:gap-5 sm:grid-cols-2 lg:grid-cols-4"
         >
           {steps.map((step) => (
             <motion.div key={step.title} variants={itemVariants}>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useReducedMotion } from "framer-motion";
-import { Layers } from "lucide-react";
+import { Layers, Sparkles, TrendingUp, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type IntegrationNode = {
@@ -16,64 +16,59 @@ export type IntegrationNode = {
   logo?: string;
 };
 
-/** Ordered by adoption among the businesses GannetLabs sells to. */
+/**
+ * Kept deliberately short. The point is not to list everything we integrate
+ * with — it is that a visitor recognises their own stack at a glance, so every
+ * entry has to be a name they already know. Eight also happens to be what the
+ * left-hand rows can hold without the logos crowding each other.
+ */
 export const INTEGRATION_NODES: IntegrationNode[] = [
-  { name: "Odoo", category: "ERP", slug: "odoo" },
   { name: "Tango Gestión", category: "ERP", slug: "tango" },
   { name: "Tiendanube", category: "Ecommerce", slug: "tiendanube" },
-  { name: "DUX Software", category: "ERP", slug: "dux" },
-  { name: "HubSpot", category: "CRM", slug: "hubspot" },
   { name: "Mercado Libre", category: "Marketplace", slug: "mercadolibre" },
-  { name: "SAP Business One", category: "ERP", slug: "sap" },
-  { name: "Finnegans", category: "ERP", slug: "finnegans" },
-  { name: "Fudo", category: "Gastronomía", slug: "fudo" },
-  { name: "Tokko Broker", category: "Inmobiliarias", slug: "tokko" },
-  { name: "Google Drive", category: "Documentos", slug: "drive" },
+  { name: "HubSpot", category: "CRM", slug: "hubspot" },
+  { name: "DUX Software", category: "ERP", slug: "dux" },
+  { name: "WhatsApp", category: "Mensajería", slug: "whatsapp" },
   { name: "Gmail", category: "Email", slug: "gmail" },
+  { name: "Google Drive", category: "Documentos", slug: "drive" },
 ];
 
-/** Diagram geometry, in percentage units of the container. */
-const HUB = { x: 50, y: 50 };
 /**
- * Half-extents of the rectangle the nodes sit on. Roughly 2:1 once the
- * container's own aspect ratio is applied, so the constellation echoes the
- * card geometry the rest of the page is built from instead of reading as a
- * circle.
+ * The diagram reads left to right as one sentence: the tools you already use,
+ * collected into one place, processed with AI, turned into decisions.
+ * Positions are percentages of the container.
  */
-const RECT = { x: 37, y: 32 };
+const HUB = { x: 27, y: 50 };
+const AI = { x: 54.8, y: 50 };
+const OUTCOME = { x: 80.6, y: 50 };
 /**
- * How far a node may sit off its exact slot: `along` runs parallel to its own
- * edge, `across` pushes it in or out.
+ * Source logos sit in two rows, above and below the hub rather than ringing it,
+ * which is what frees the right-hand half for the rest of the journey.
  *
- * The asymmetry is what sells the shape. Sliding a node `along` its own edge
- * costs the silhouette nothing, so the long runs get a lot of it. Pushing a
- * node `across` its edge is what bends the outline, and the vertical edges are
- * the sensitive ones: those four nodes carry the left and right sides on their
- * own, so any real `across` wander bows them out into an oval or pinches them
- * into an hourglass. They stay nearly in line with the corners; the top and
- * bottom runs, which have empty space above and below and eight nodes to
- * average out, can wander freely.
+ * `offset` is the load-bearing number. A logo sitting directly above the hub
+ * spends 54px leaving its own card and 84px arriving at the hub's before any
+ * line is drawn, so the rows have to sit far enough out that what is left reads
+ * as a connection rather than a stub. That is what sets the container's height.
  */
-const SCATTER = {
-  horizontal: { along: 4.4, across: 6.4 },
-  vertical: { along: 1.2, across: 1.8 },
-};
-/** Hash salts picked so no node lands visibly in line with its neighbours. */
+const ROW = { from: 7, to: 47, offset: 37.6 };
+/**
+ * Keeps the rows from looking like a spreadsheet. Both amplitudes are small,
+ * and for different reasons: `along` is bounded by the gap between neighbours
+ * in a row, `across` by the container edge just beyond each row.
+ */
+const SCATTER = { along: 0.4, across: 2.5 };
+/** Hash salts picked so no logo lands exactly in line with its neighbours. */
 const SCATTER_SALT = { along: 0.37, across: 97.99 };
 /**
- * Fraction of each vertical edge its nodes may use. Under 1 so they stay off
- * the corners, which sit close enough to collide once everything is drifting.
- */
-const SIDE_SPAN = 0.85;
-/**
  * Clearance between a connector's tip and the card it points at, in px. A
- * fixed distance rather than a fraction of the node -> hub span: the nodes sit
- * at very different distances from the hub, so a fraction leaves a different
- * gap at every card, which looks careless around a focal element.
+ * fixed distance rather than a fraction of the span: the stages sit at very
+ * different distances from each other, so a fraction would leave a different
+ * gap at every card, which looks careless.
  */
 const CONNECTOR_GAP = 14;
 /** Fallbacks for the first paint, before the real boxes can be measured. */
 const HUB_BOX = { w: 248, h: 140 };
+const STAGE_BOX = { w: 200, h: 124 };
 const CHIP_BOX = { w: 132, h: 81 };
 
 /**
@@ -86,56 +81,23 @@ const scatterAt = (index: number, salt: number) => {
 };
 
 /**
- * Walks the nodes clockwise around the perimeter of RECT, starting top-left:
- * most of them along the long top and bottom runs, the rest down each side.
- * Corners are occupied on purpose — they are what makes the shape read as a
- * rectangle. Each slot is then nudged off the exact line so the result looks
- * hand-placed rather than plotted.
+ * Splits the sources across the two rows in order, spreading each row end to
+ * end, then nudges every logo off its exact slot so the rows read as
+ * hand-placed instead of plotted.
  */
 const positionFor = (index: number, total: number) => {
-  const perSide = Math.max(1, Math.round(total / 6));
-  const topCount = Math.ceil((total - perSide * 2) / 2);
-  const bottomCount = Math.max(1, total - perSide * 2 - topCount);
-  /** Spreads n nodes end to end, corners included. */
-  const run = (i: number, n: number) => (n > 1 ? i / (n - 1) : 0.5);
-  /** Spreads n nodes around the middle of an edge, clear of both corners. */
-  const between = (i: number, n: number) =>
-    0.5 + SIDE_SPAN * ((i + 1) / (n + 1) - 0.5);
+  const perRow = Math.ceil(total / 2);
+  const onTop = index < perRow;
+  const column = onTop ? index : index - perRow;
+  const columns = onTop ? perRow : total - perRow;
+  const t = columns > 1 ? column / (columns - 1) : 0.5;
 
-  let x: number;
-  let y: number;
-  /** Which axis the node's edge runs along, so scatter can follow it. */
-  let horizontal: boolean;
-
-  if (index < topCount) {
-    x = -RECT.x + 2 * RECT.x * run(index, topCount);
-    y = -RECT.y;
-    horizontal = true;
-  } else if (index < topCount + perSide) {
-    x = RECT.x;
-    y = -RECT.y + 2 * RECT.y * between(index - topCount, perSide);
-    horizontal = false;
-  } else if (index < topCount + perSide + bottomCount) {
-    x = RECT.x - 2 * RECT.x * run(index - topCount - perSide, bottomCount);
-    y = RECT.y;
-    horizontal = true;
-  } else {
-    x = -RECT.x;
-    y =
-      RECT.y -
-      2 *
-        RECT.y *
-        between(index - topCount - perSide - bottomCount, perSide);
-    horizontal = false;
-  }
-
-  const scatter = horizontal ? SCATTER.horizontal : SCATTER.vertical;
-  const along = scatterAt(index, SCATTER_SALT.along) * scatter.along;
-  const across = scatterAt(index, SCATTER_SALT.across) * scatter.across;
+  const along = scatterAt(index, SCATTER_SALT.along) * SCATTER.along;
+  const across = scatterAt(index, SCATTER_SALT.across) * SCATTER.across;
 
   return {
-    x: HUB.x + x + (horizontal ? along : across),
-    y: HUB.y + y + (horizontal ? across : along),
+    x: ROW.from + (ROW.to - ROW.from) * t + along,
+    y: HUB.y + (onTop ? -ROW.offset : ROW.offset) + across,
   };
 };
 
@@ -155,38 +117,65 @@ const boxExit = (from: Point, to: Point, halfW: number, halfH: number): Point =>
 };
 
 /**
- * The visible span of one connector: it leaves the node's card and stops short
- * of the hub's. When the hub is dragged close enough that the two clearances
- * meet, the segment would flip backwards, so it collapses to nothing instead.
+ * The visible span of one connector: it leaves the first card and stops short
+ * of the second. When the two clearances meet — which happens once the hub is
+ * dragged close enough to something — the segment would flip backwards, so it
+ * collapses to nothing instead.
  */
-const connector = (node: Point, hub: Point, chip: Point, hubBox: Point) => {
-  const start = boxExit(node, hub, chip.x, chip.y);
-  const end = boxExit(hub, node, hubBox.x, hubBox.y);
-  const forward = (end.x - start.x) * (hub.x - node.x) + (end.y - start.y) * (hub.y - node.y);
+const connector = (from: Point, to: Point, fromHalf: Point, toHalf: Point) => {
+  const start = boxExit(from, to, fromHalf.x, fromHalf.y);
+  const end = boxExit(to, from, toHalf.x, toHalf.y);
+  const forward = (end.x - start.x) * (to.x - from.x) + (end.y - start.y) * (to.y - from.y);
   return forward > 0 ? { start, end } : { start, end: start };
 };
 
+/** Half-extents plus the clearance, which is what the connector math wants. */
+const halfWithGap = (w: number, h: number): Point => ({
+  x: w / 2 + CONNECTOR_GAP,
+  y: h / 2 + CONNECTOR_GAP,
+});
+
 /**
- * Per-node Lissajous drift: amplitudes in px, frequencies in rad/ms.
- * Periods hover around 20-40s and are deliberately incommensurate so the
- * constellation never visibly repeats itself.
+ * A Lissajous drift: amplitudes in px, frequencies in rad/ms, phases in rad.
+ * Every field is required on purpose — a missing phase silently evaluates to
+ * NaN, which propagates through every connector and erases the lines.
  */
-const NODE_DRIFT = INTEGRATION_NODES.map((_, i) => ({
-  ax: 8 + (i % 3) * 3,
-  ay: 10 + ((i + 1) % 4) * 2.5,
+type Drift = { ax: number; ay: number; fx: number; fy: number; px: number; py: number };
+
+/**
+ * Per-logo drift. Periods are deliberately incommensurate so the diagram never
+ * visibly repeats. Amplitudes are modest because the horizontal spacing inside
+ * a row is the tightest dimension in the layout.
+ */
+const NODE_DRIFT: Drift[] = INTEGRATION_NODES.map((_, i) => ({
+  ax: 3 + (i % 3) * 1.5,
+  ay: 6 + ((i + 1) % 4) * 2,
   fx: (Math.PI * 2) / (26000 + (i % 5) * 4100),
   fy: (Math.PI * 2) / (21000 + (i % 4) * 5300),
   px: i * 1.7,
   py: i * 2.3,
 }));
 
-/** The hub breathes on its own, slightly slower than the satellites. */
-const HUB_DRIFT = {
+/** The hub breathes on its own, slightly slower than the logos. */
+const HUB_DRIFT: Drift = {
   ax: 6,
   ay: 8,
   fx: (Math.PI * 2) / 17000,
   fy: (Math.PI * 2) / 23000,
+  px: 0,
+  py: 1.3,
 };
+
+/** The two downstream stages drift gently, and out of step with the hub. */
+const STAGE_DRIFT: Drift[] = [
+  { ax: 4, ay: 6, fx: (Math.PI * 2) / 19000, fy: (Math.PI * 2) / 25000, px: 0.8, py: 2.1 },
+  { ax: 5, ay: 7, fx: (Math.PI * 2) / 22000, fy: (Math.PI * 2) / 28000, px: 2.4, py: 0.6 },
+];
+
+const driftAt = (d: Drift, t: number) => ({
+  x: d.ax * Math.sin(t * d.fx + d.px),
+  y: d.ay * Math.sin(t * d.fy + d.py),
+});
 
 /**
  * Renders the vendor logo, falling back to a wordmark when the asset is
@@ -230,10 +219,10 @@ const NodeChip = ({ node }: { node: IntegrationNode }) => (
 );
 
 /**
- * The centre of a hub-and-spoke diagram reads as the destination of everything
- * flowing into it, so it holds the customer's outcome, not our wordmark — the
- * data lands in one place that belongs to them. The brand still runs through
- * the diagram: the connectors and this halo are drawn in the brand colour.
+ * The collection point. It holds the customer's outcome rather than our
+ * wordmark: the centre of a diagram everything flows into reads as the
+ * destination, and the data lands in one place that belongs to them. The brand
+ * is still everywhere — the connectors and this halo are the brand colour.
  *
  * `select-none` matters here. The plate is draggable, and without it a drag
  * starting on the label selects text instead of moving the hub.
@@ -261,17 +250,51 @@ const Hub = () => (
 );
 
 /**
- * The living constellation. Node and hub positions are recomputed every frame
- * from the same clock, and each connector is redrawn from those exact
- * positions — so no matter how far anything drifts (or gets dragged), the
- * lines stay attached by construction.
+ * The two stages after the hub. Smaller than it on purpose: the hub is where
+ * the customer's data lives and the one thing you can grab, so it stays the
+ * anchor of the composition.
  */
-const DesktopConstellation = () => {
+const StageCard = ({ icon: Icon, label }: { icon: LucideIcon; label: string }) => (
+  <div className="select-none rounded-[1.75rem] bg-white/[0.05] p-1.5 ring-1 ring-white/[0.08]">
+    <div className="flex h-[112px] w-[188px] flex-col items-center justify-center gap-2.5 rounded-[1.375rem] bg-card px-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+      <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.04] ring-1 ring-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+        <Icon aria-hidden="true" strokeWidth={1.25} className="h-[18px] w-[18px] text-brand" />
+      </div>
+      <p className="text-center font-display text-sm font-semibold leading-tight tracking-tight text-foreground">
+        {label}
+      </p>
+    </div>
+  </div>
+);
+
+const STAGES: { icon: LucideIcon; label: string }[] = [
+  { icon: Sparkles, label: "Procesados con IA" },
+  { icon: TrendingUp, label: "Mejores decisiones" },
+];
+
+/** Shared stroke setup, so sources and output stay one visual family. */
+const connectorProps = {
+  strokeWidth: 1.25,
+  // Period 12 matches the dataflow keyframe's 12px offset sweep, so the dash
+  // march loops seamlessly.
+  strokeDasharray: "4 8",
+  strokeLinecap: "round",
+} as const;
+
+/**
+ * The living diagram. Every position is recomputed each frame from one clock,
+ * and every connector is redrawn from those exact positions — so no matter how
+ * far anything drifts, or how far the hub is dragged, the lines stay attached
+ * by construction.
+ */
+const DesktopJourney = () => {
   const reduceMotion = useReducedMotion();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const nodeRefs = useRef<(HTMLDivElement | null)[]>([]);
   const lineRefs = useRef<(SVGLineElement | null)[]>([]);
+  const flowRefs = useRef<(SVGLineElement | null)[]>([]);
   const hubFloatRef = useRef<HTMLDivElement | null>(null);
+  const stageRefs = useRef<(HTMLDivElement | null)[]>([]);
   const dragX = useMotionValue(0);
   const dragY = useMotionValue(0);
   const [size, setSize] = useState({ w: 0, h: 0 });
@@ -296,34 +319,43 @@ const DesktopConstellation = () => {
     if (!el || size.w === 0 || size.h === 0) return;
 
     const total = INTEGRATION_NODES.length;
-    const bases = INTEGRATION_NODES.map((_, i) => {
-      const p = positionFor(i, total);
-      return { x: (p.x / 100) * size.w, y: (p.y / 100) * size.h };
+    const toPx = (p: { x: number; y: number }) => ({
+      x: (p.x / 100) * size.w,
+      y: (p.y / 100) * size.h,
     });
-    const hubBase = { x: (HUB.x / 100) * size.w, y: (HUB.y / 100) * size.h };
+    const bases = INTEGRATION_NODES.map((_, i) => toPx(positionFor(i, total)));
+    const hubBase = toPx(HUB);
+    const stageBases = [toPx(AI), toPx(OUTCOME)];
 
     // Measured once per layout, never inside the loop: reading offsetWidth
     // forces a synchronous layout, and doing that every frame would thrash.
     const hubEl = hubFloatRef.current;
     const chipEl = nodeRefs.current.find(Boolean);
-    const hubHalf = {
-      x: (hubEl?.offsetWidth || HUB_BOX.w) / 2 + CONNECTOR_GAP,
-      y: (hubEl?.offsetHeight || HUB_BOX.h) / 2 + CONNECTOR_GAP,
-    };
-    const chipHalf = {
-      x: (chipEl?.offsetWidth || CHIP_BOX.w) / 2 + CONNECTOR_GAP,
-      y: (chipEl?.offsetHeight || CHIP_BOX.h) / 2 + CONNECTOR_GAP,
+    const hubHalf = halfWithGap(hubEl?.offsetWidth || HUB_BOX.w, hubEl?.offsetHeight || HUB_BOX.h);
+    const chipHalf = halfWithGap(
+      chipEl?.offsetWidth || CHIP_BOX.w,
+      chipEl?.offsetHeight || CHIP_BOX.h,
+    );
+    const stageHalves = stageBases.map((_, i) => {
+      const stageEl = stageRefs.current[i];
+      return halfWithGap(
+        stageEl?.offsetWidth || STAGE_BOX.w,
+        stageEl?.offsetHeight || STAGE_BOX.h,
+      );
+    });
+
+    const paint = (line: SVGLineElement | null, from: Point, to: Point) => {
+      if (!line) return;
+      line.setAttribute("x1", String(from.x));
+      line.setAttribute("y1", String(from.y));
+      line.setAttribute("x2", String(to.x));
+      line.setAttribute("y2", String(to.y));
     };
 
     const tick = (t: number) => {
       // Under reduced motion nothing drifts, so the only thing left to track
-      // is the drag offset — the node transforms stay untouched at zero.
-      const hubDrift = reduceMotion
-        ? { x: 0, y: 0 }
-        : {
-            x: HUB_DRIFT.ax * Math.sin(t * HUB_DRIFT.fx),
-            y: HUB_DRIFT.ay * Math.sin(t * HUB_DRIFT.fy + 1.3),
-          };
+      // is the drag offset — the card transforms stay untouched at zero.
+      const hubDrift = reduceMotion ? { x: 0, y: 0 } : driftAt(HUB_DRIFT, t);
       const hub = {
         x: hubBase.x + hubDrift.x + dragX.get(),
         y: hubBase.y + hubDrift.y + dragY.get(),
@@ -332,14 +364,17 @@ const DesktopConstellation = () => {
         hubFloatRef.current.style.transform = `translate3d(${hubDrift.x}px, ${hubDrift.y}px, 0)`;
       }
 
+      const stages = stageBases.map((base, i) => {
+        const drift = reduceMotion ? { x: 0, y: 0 } : driftAt(STAGE_DRIFT[i], t);
+        const stageEl = stageRefs.current[i];
+        if (stageEl && !reduceMotion) {
+          stageEl.style.transform = `translate3d(${drift.x}px, ${drift.y}px, 0)`;
+        }
+        return { x: base.x + drift.x, y: base.y + drift.y };
+      });
+
       for (let i = 0; i < total; i++) {
-        const d = NODE_DRIFT[i];
-        const drift = reduceMotion
-          ? { x: 0, y: 0 }
-          : {
-              x: d.ax * Math.sin(t * d.fx + d.px),
-              y: d.ay * Math.sin(t * d.fy + d.py),
-            };
+        const drift = reduceMotion ? { x: 0, y: 0 } : driftAt(NODE_DRIFT[i], t);
         const node = { x: bases[i].x + drift.x, y: bases[i].y + drift.y };
 
         const nodeEl = nodeRefs.current[i];
@@ -347,15 +382,16 @@ const DesktopConstellation = () => {
           nodeEl.style.transform = `translate3d(${drift.x}px, ${drift.y}px, 0)`;
         }
 
-        const line = lineRefs.current[i];
-        if (line) {
-          const { start: from, end: to } = connector(node, hub, chipHalf, hubHalf);
-          line.setAttribute("x1", String(from.x));
-          line.setAttribute("y1", String(from.y));
-          line.setAttribute("x2", String(to.x));
-          line.setAttribute("y2", String(to.y));
-        }
+        const { start, end } = connector(node, hub, chipHalf, hubHalf);
+        paint(lineRefs.current[i], start, end);
       }
+
+      // Output flow. Drawn hub -> AI -> outcome so the dashes march away from
+      // the hub, which is what makes it read as a result rather than an input.
+      const hubToAi = connector(hub, stages[0], hubHalf, stageHalves[0]);
+      paint(flowRefs.current[0], hubToAi.start, hubToAi.end);
+      const aiToOutcome = connector(stages[0], stages[1], stageHalves[0], stageHalves[1]);
+      paint(flowRefs.current[1], aiToOutcome.start, aiToOutcome.end);
 
       frame = requestAnimationFrame(tick);
     };
@@ -386,12 +422,28 @@ const DesktopConstellation = () => {
   }, [size, reduceMotion, dragX, dragY]);
 
   const total = INTEGRATION_NODES.length;
-  const hubBase = { x: (HUB.x / 100) * size.w, y: (HUB.y / 100) * size.h };
+  const pct = (p: { x: number; y: number }) => ({
+    x: (p.x / 100) * size.w,
+    y: (p.y / 100) * size.h,
+  });
+  // First paint only, from nominal box sizes. The loop takes over with the
+  // measured ones on the very next frame.
+  const nominal = {
+    hub: halfWithGap(HUB_BOX.w, HUB_BOX.h),
+    chip: halfWithGap(CHIP_BOX.w, CHIP_BOX.h),
+    stage: halfWithGap(STAGE_BOX.w, STAGE_BOX.h),
+  };
+  const hubBase = pct(HUB);
+  const stageBases = [pct(AI), pct(OUTCOME)];
+  const flowSeeds = [
+    connector(hubBase, stageBases[0], nominal.hub, nominal.stage),
+    connector(stageBases[0], stageBases[1], nominal.stage, nominal.stage),
+  ];
 
   return (
     <div
       ref={containerRef}
-      className="relative mx-auto hidden aspect-[16/9] w-full max-w-5xl lg:block"
+      className="relative mx-auto hidden aspect-[11/5] w-full max-w-7xl xl:block"
     >
       {size.w > 0 && (
         <svg
@@ -400,15 +452,11 @@ const DesktopConstellation = () => {
           className="absolute inset-0 h-full w-full"
         >
           {INTEGRATION_NODES.map((node, i) => {
-            const p = positionFor(i, total);
-            const base = { x: (p.x / 100) * size.w, y: (p.y / 100) * size.h };
-            // First paint only, from nominal box sizes. The loop takes over
-            // with the measured ones on the very next frame.
             const { start, end } = connector(
-              base,
+              pct(positionFor(i, total)),
               hubBase,
-              { x: CHIP_BOX.w / 2 + CONNECTOR_GAP, y: CHIP_BOX.h / 2 + CONNECTOR_GAP },
-              { x: HUB_BOX.w / 2 + CONNECTOR_GAP, y: HUB_BOX.h / 2 + CONNECTOR_GAP },
+              nominal.chip,
+              nominal.hub,
             );
             return (
               <line
@@ -422,16 +470,32 @@ const DesktopConstellation = () => {
                 y2={end.y}
                 stroke="hsl(var(--brand))"
                 strokeOpacity={0.35}
-                strokeWidth={1.25}
-                // Period 12 matches the dataflow keyframe's 12px offset sweep,
-                // so the dash march loops seamlessly.
-                strokeDasharray="4 8"
-                strokeLinecap="round"
                 style={{ animationDelay: `${i * 0.13}s` }}
                 className="motion-safe:animate-dataflow"
+                {...connectorProps}
               />
             );
           })}
+
+          {flowSeeds.map((seed, i) => (
+            <line
+              key={`flow-${i}`}
+              ref={(elem) => {
+                flowRefs.current[i] = elem;
+              }}
+              x1={seed.start.x}
+              y1={seed.start.y}
+              x2={seed.end.x}
+              y2={seed.end.y}
+              stroke="hsl(var(--brand))"
+              // Brighter than the inbound lines: this is the payoff half of
+              // the diagram, so it should carry a little more weight.
+              strokeOpacity={0.55}
+              style={{ animationDelay: `${0.4 + i * 0.3}s` }}
+              className="motion-safe:animate-dataflow"
+              {...connectorProps}
+            />
+          ))}
         </svg>
       )}
 
@@ -455,17 +519,23 @@ const DesktopConstellation = () => {
         );
       })}
 
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+      <div
+        className="absolute -translate-x-1/2 -translate-y-1/2"
+        style={{ left: `${HUB.x}%`, top: `${HUB.y}%` }}
+      >
         <motion.div
           drag
           dragMomentum={false}
           dragSnapToOrigin
           dragElastic={reduceMotion ? 0 : 0.18}
+          // Asymmetric on purpose: there is open space to the left, but the
+          // rest of the journey is to the right, and letting the hub bury the
+          // AI card serves nobody.
           dragConstraints={{
-            left: -size.w * 0.32,
-            right: size.w * 0.32,
-            top: -size.h * 0.3,
-            bottom: size.h * 0.3,
+            left: -size.w * 0.2,
+            right: size.w * 0.1,
+            top: -size.h * 0.28,
+            bottom: size.h * 0.28,
           }}
           // The snap back to origin is an inertia animation built from
           // dragTransition, so this is where the spring has to be tuned.
@@ -487,26 +557,69 @@ const DesktopConstellation = () => {
           </div>
         </motion.div>
       </div>
+
+      {STAGES.map((stage, i) => {
+        const at = i === 0 ? AI : OUTCOME;
+        return (
+          <div
+            key={stage.label}
+            className="absolute -translate-x-1/2 -translate-y-1/2"
+            style={{ left: `${at.x}%`, top: `${at.y}%` }}
+          >
+            <div
+              ref={(elem) => {
+                stageRefs.current[i] = elem;
+              }}
+              style={{ willChange: "transform" }}
+            >
+              <StageCard icon={stage.icon} label={stage.label} />
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };
 
+/** A short dashed run, for the stacked layout where there is no SVG to draw. */
+const StackLink = () => (
+  <div
+    aria-hidden="true"
+    className="mx-auto h-10 w-px border-l border-dashed border-brand/40"
+  />
+);
+
+/**
+ * Below xl the left-to-right journey has nowhere to go, so the same four beats
+ * stack vertically instead. The order still tells the story: your tools, then
+ * one place, then AI, then decisions.
+ */
+const StackedJourney = () => (
+  <div className="xl:hidden">
+    <div className="grid grid-cols-2 justify-items-center gap-4 sm:grid-cols-4">
+      {INTEGRATION_NODES.map((node) => (
+        <NodeChip key={node.slug} node={node} />
+      ))}
+    </div>
+    <StackLink />
+    <div className="flex justify-center">
+      <Hub />
+    </div>
+    {STAGES.map((stage) => (
+      <div key={stage.label}>
+        <StackLink />
+        <div className="flex justify-center">
+          <StageCard icon={stage.icon} label={stage.label} />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
 const IntegrationsDiagram = ({ className }: { className?: string }) => (
   <div className={cn("relative", className)}>
-    {/* Desktop: the constellation. Every system converges on the hub. */}
-    <DesktopConstellation />
-
-    {/* Below lg the constellation is unreadable: fall back to a plain grid. */}
-    <div className="lg:hidden">
-      <div className="flex justify-center">
-        <Hub />
-      </div>
-      <div className="mt-10 grid grid-cols-2 justify-items-center gap-4 sm:grid-cols-3">
-        {INTEGRATION_NODES.map((node) => (
-          <NodeChip key={node.slug} node={node} />
-        ))}
-      </div>
-    </div>
+    <DesktopJourney />
+    <StackedJourney />
   </div>
 );
 
