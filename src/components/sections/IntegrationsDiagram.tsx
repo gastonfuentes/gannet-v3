@@ -33,21 +33,101 @@ export const INTEGRATION_NODES: IntegrationNode[] = [
 
 /** Diagram geometry, in percentage units of the container. */
 const HUB = { x: 50, y: 50 };
-const RADIUS = { x: 38, y: 40 };
+/**
+ * Half-extents of the rectangle the nodes sit on. Roughly 2:1 once the
+ * container's own aspect ratio is applied, so the constellation echoes the
+ * card geometry the rest of the page is built from instead of reading as a
+ * circle.
+ */
+const RECT = { x: 37, y: 32 };
+/**
+ * How far a node may sit off its exact slot: `along` runs parallel to its own
+ * edge, `across` pushes it in or out.
+ *
+ * The asymmetry is what sells the shape. Sliding a node `along` its own edge
+ * costs the silhouette nothing, so the long runs get a lot of it. Pushing a
+ * node `across` its edge is what bends the outline, and the vertical edges are
+ * the sensitive ones: those four nodes carry the left and right sides on their
+ * own, so any real `across` wander bows them out into an oval or pinches them
+ * into an hourglass. They stay nearly in line with the corners; the top and
+ * bottom runs, which have empty space above and below and eight nodes to
+ * average out, can wander freely.
+ */
+const SCATTER = {
+  horizontal: { along: 4.4, across: 6.4 },
+  vertical: { along: 1.2, across: 1.8 },
+};
+/** Hash salts picked so no node lands visibly in line with its neighbours. */
+const SCATTER_SALT = { along: 0.37, across: 97.99 };
+/**
+ * Fraction of each vertical edge its nodes may use. Under 1 so they stay off
+ * the corners, which sit close enough to collide once everything is drifting.
+ */
+const SIDE_SPAN = 0.85;
 /** Where each connector starts and stops, as a fraction of node -> hub. */
 const LINE_START = 0.12;
 const LINE_END = 0.66;
 
 /**
- * Spreads nodes over an ellipse, offset by half a step so none of them lands
- * directly above or below the hub.
+ * Stable pseudo-random in -1..1. A hash rather than Math.random so the layout
+ * is byte-identical across renders and reloads.
+ */
+const scatterAt = (index: number, salt: number) => {
+  const v = Math.sin((index + 1) * salt) * 10000;
+  return (v - Math.floor(v)) * 2 - 1;
+};
+
+/**
+ * Walks the nodes clockwise around the perimeter of RECT, starting top-left:
+ * most of them along the long top and bottom runs, the rest down each side.
+ * Corners are occupied on purpose — they are what makes the shape read as a
+ * rectangle. Each slot is then nudged off the exact line so the result looks
+ * hand-placed rather than plotted.
  */
 const positionFor = (index: number, total: number) => {
-  const step = 360 / total;
-  const angle = ((-90 + step / 2 + step * index) * Math.PI) / 180;
+  const perSide = Math.max(1, Math.round(total / 6));
+  const topCount = Math.ceil((total - perSide * 2) / 2);
+  const bottomCount = Math.max(1, total - perSide * 2 - topCount);
+  /** Spreads n nodes end to end, corners included. */
+  const run = (i: number, n: number) => (n > 1 ? i / (n - 1) : 0.5);
+  /** Spreads n nodes around the middle of an edge, clear of both corners. */
+  const between = (i: number, n: number) =>
+    0.5 + SIDE_SPAN * ((i + 1) / (n + 1) - 0.5);
+
+  let x: number;
+  let y: number;
+  /** Which axis the node's edge runs along, so scatter can follow it. */
+  let horizontal: boolean;
+
+  if (index < topCount) {
+    x = -RECT.x + 2 * RECT.x * run(index, topCount);
+    y = -RECT.y;
+    horizontal = true;
+  } else if (index < topCount + perSide) {
+    x = RECT.x;
+    y = -RECT.y + 2 * RECT.y * between(index - topCount, perSide);
+    horizontal = false;
+  } else if (index < topCount + perSide + bottomCount) {
+    x = RECT.x - 2 * RECT.x * run(index - topCount - perSide, bottomCount);
+    y = RECT.y;
+    horizontal = true;
+  } else {
+    x = -RECT.x;
+    y =
+      RECT.y -
+      2 *
+        RECT.y *
+        between(index - topCount - perSide - bottomCount, perSide);
+    horizontal = false;
+  }
+
+  const scatter = horizontal ? SCATTER.horizontal : SCATTER.vertical;
+  const along = scatterAt(index, SCATTER_SALT.along) * scatter.along;
+  const across = scatterAt(index, SCATTER_SALT.across) * scatter.across;
+
   return {
-    x: HUB.x + RADIUS.x * Math.cos(angle),
-    y: HUB.y + RADIUS.y * Math.sin(angle),
+    x: HUB.x + x + (horizontal ? along : across),
+    y: HUB.y + y + (horizontal ? across : along),
   };
 };
 
@@ -253,7 +333,7 @@ const DesktopConstellation = () => {
   return (
     <div
       ref={containerRef}
-      className="relative mx-auto hidden aspect-[16/10] w-full max-w-5xl lg:block"
+      className="relative mx-auto hidden aspect-[16/9] w-full max-w-5xl lg:block"
     >
       {size.w > 0 && (
         <svg
