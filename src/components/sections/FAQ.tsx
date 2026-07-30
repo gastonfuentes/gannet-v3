@@ -19,6 +19,16 @@ const faqs = [
       "El soporte de todo lo que ya está funcionando y las nuevas soluciones que tu negocio vaya necesitando. No nos gusta entregar un sistema, cobrar y desaparecer: preferimos ser un socio de tu empresa, que entiende cómo trabajás y mejora tus herramientas mes a mes.",
   },
   {
+    question: "¿Es un proyecto cerrado o un abono mensual?",
+    answer:
+      "Es un abono mensual, no un pago único por un proyecto que se entrega y se termina. El monto acompaña la carga de trabajo real de cada mes, y sabés de antemano en qué rango vas a estar. El sistema tampoco queda congelado el día que se entrega: cada mes aparecen necesidades nuevas y esas también entran.",
+  },
+  {
+    question: "¿Qué pasa si algo falla o cambia una herramienta que uso?",
+    answer:
+      "Lo resolvemos nosotros. Si se rompe una integración, cambia una herramienta que usás o algo deja de funcionar, es asunto nuestro y ya está incluido en el abono. No te quedás solo administrando un sistema que no construiste.",
+  },
+  {
     question: "¿Qué pasa con mis datos? ¿Es seguro?",
     answer:
       "Cada cliente tiene su propio servidor privado y su propia base de datos. Tus datos no se mezclan con los de otras empresas ni viven en una plataforma compartida: corren en una infraestructura dedicada a tu negocio. Nos conectamos a tus sistemas solo con los permisos que vos nos habilitás y podés revocarlos cuando quieras. Tu información tampoco se usa para entrenar modelos de inteligencia artificial. Y si tu empresa necesita firmar un acuerdo de confidencialidad, lo firmamos.",
