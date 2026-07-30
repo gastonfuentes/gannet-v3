@@ -3,6 +3,7 @@ import { ArrowRight, ArrowUpRight, Menu, X } from "lucide-react";
 import ShinyText from "@/components/animations/ShinyText";
 import RotatingText from "@/components/animations/RotatingText";
 import Logo from "@/components/icons/Logo";
+import BirdMark from "@/components/icons/BirdMark";
 
 // Video served locally from /public. Trimmed to its moving section (the original
 // had ~1.6s of frozen frames at the end that broke the loop). See hero-bg.mp4.
@@ -131,6 +132,13 @@ const HeroSection = () => {
 
         {/* Hero center block */}
         <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col items-center justify-center px-6 text-center lg:px-8">
+          {/* Brand anchor for the block below: it gives the copy something to
+              hang off instead of starting as loose text over the video. Square
+              box because the path's bounding box is 141x142 — no `w-auto`,
+              which an SVG carrying only a viewBox resolves against its
+              container rather than its aspect ratio. */}
+          <BirdMark className="mb-6 h-10 w-10 text-[#00EE8E] md:mb-8 md:h-12 md:w-12" />
+
           {/* Sets up the rotating headline below it. From `md` up, each clause
               is a block so the sentence breaks exactly where intended; below
               that they stay inline and reflow naturally. The wider measure at
