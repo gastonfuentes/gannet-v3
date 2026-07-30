@@ -345,14 +345,112 @@ const STAGES: { icon: LucideIcon; label: string; tone: Tone }[] = [
   { icon: TrendingUp, label: "Mejores decisiones", tone: "peak" },
 ];
 
-/** Shared stroke setup, so sources and output stay one visual family. */
-const connectorProps = {
-  strokeWidth: 1.25,
-  // Period 12 matches the dataflow keyframe's 12px offset sweep, so the dash
-  // march loops seamlessly.
-  strokeDasharray: "4 8",
-  strokeLinecap: "round",
-} as const;
+/**
+ * Every connector in the diagram is a swarm of dots rather than a dashed
+ * line. Every dot leaves its card, but each one has its own reach, so the
+ * swarm thins out on the way — only a few actually arrive, which is the
+ * visual argument: lots of raw data goes in, less comes through.
+ */
+const STREAM_SIZE = 18;
+/** Half-width of the funnel mouth at the source card, in px. */
+const STREAM_SPREAD = 15;
+
+/**
+ * One dot in a stream. Every field is fixed at module load — the animation
+ * only ever advances progress along the connector, so the swarm is
+ * byte-identical across renders, just like the layout.
+ */
+type StreamParticle = {
+  /** Where in the cycle this dot starts, 0..1. */
+  phase: number;
+  /** Cycle progress per ms. */
+  speed: number;
+  /** How far along the connector this dot survives, 0..1. */
+  reach: number;
+  /** Signed lateral offset at the funnel mouth, in px. */
+  spread: number;
+  /** Radius at the source, in px. */
+  size: number;
+  /** Amplitude and frequency of the in-flight wobble. */
+  sway: number;
+  swayFreq: number;
+};
+
+/** Companion to `scatterAt`: stable pseudo-random in 0..1 from one seed. */
+const hash01 = (seed: number) => {
+  const v = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+  return v - Math.floor(v);
+};
+
+const streamFor = (streamIndex: number): StreamParticle[] =>
+  Array.from({ length: STREAM_SIZE }, (_, j) => {
+    const seed = streamIndex * 100 + j;
+    return {
+      phase: hash01(seed + 17),
+      speed: 1 / (2600 + hash01(seed + 29) * 1800),
+      // Linear over 0.3..1, so roughly a fifth of the swarm crosses the final
+      // stretch — enough dots to keep the hub visibly fed, few enough that
+      // the taper reads.
+      reach: 0.3 + 0.7 * hash01(seed),
+      spread: (hash01(seed + 43) * 2 - 1) * STREAM_SPREAD,
+      size: 1.1 + hash01(seed + 59) * 1.3,
+      sway: 1 + hash01(seed + 71) * 2,
+      swayFreq: (Math.PI * 2) / (2400 + hash01(seed + 83) * 2600),
+    };
+  });
+
+/** Streams are per-connector and deterministic, so they live at module scope. */
+const NODE_STREAMS: StreamParticle[][] = INTEGRATION_NODES.map((_, i) => streamFor(i));
+
+/**
+ * The two output legs, hub -> AI -> outcome. Seeded past the node range so
+ * they never share a pattern with a source stream.
+ */
+const FLOW_STREAMS: StreamParticle[][] = [streamFor(50), streamFor(51)];
+
+/**
+ * Repaints one stream between the current endpoints. The funnel narrows on
+ * `(1 - progress)^1.5`, so the swarm leaves the card wide and converges onto
+ * the connector's axis well before the hub. With motion off the same dots
+ * freeze at their own resting points instead of travelling.
+ */
+const paintStream = (
+  circles: (SVGCircleElement | null)[],
+  particles: StreamParticle[],
+  start: Point,
+  end: Point,
+  t: number,
+  frozen: boolean,
+  alpha = 0.75,
+) => {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const len = Math.hypot(dx, dy);
+  for (let j = 0; j < particles.length; j++) {
+    const dot = circles[j];
+    if (!dot) continue;
+    const p = particles[j];
+    const progress = frozen ? p.phase * p.reach : (t * p.speed + p.phase) % 1;
+    // Past its reach the dot has expired for this cycle; a collapsed
+    // connector (hub dragged onto the card) has no axis to offset from.
+    if (len < 1 || progress > p.reach) {
+      dot.setAttribute("opacity", "0");
+      continue;
+    }
+    const funnel = (1 - progress) ** 1.5;
+    const wobble = frozen ? 0 : Math.sin(t * p.swayFreq + j) * p.sway * funnel;
+    const lateral = p.spread * funnel + wobble;
+    const x = start.x + dx * progress + (-dy / len) * lateral;
+    const y = start.y + dy * progress + (dx / len) * lateral;
+    // Born just off the card, gone just before its reach runs out — the
+    // envelope keeps both ends of every dot's life from popping.
+    const envelope = Math.min(progress / 0.07, (p.reach - progress) / 0.14, 1);
+    dot.setAttribute("cx", String(x));
+    dot.setAttribute("cy", String(y));
+    dot.setAttribute("r", String(p.size * (1 - 0.35 * progress)));
+    dot.setAttribute("opacity", String(Math.max(0, envelope) * alpha));
+  }
+};
 
 /**
  * The living diagram. Every position is recomputed each frame from one clock,
@@ -364,8 +462,8 @@ const DesktopJourney = () => {
   const reduceMotion = useReducedMotion();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const nodeRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const lineRefs = useRef<(SVGLineElement | null)[]>([]);
-  const flowRefs = useRef<(SVGLineElement | null)[]>([]);
+  const streamRefs = useRef<(SVGCircleElement | null)[][]>([]);
+  const flowStreamRefs = useRef<(SVGCircleElement | null)[][]>([]);
   const hubFloatRef = useRef<HTMLDivElement | null>(null);
   const stageRefs = useRef<(HTMLDivElement | null)[]>([]);
   const dragX = useMotionValue(0);
@@ -417,14 +515,6 @@ const DesktopJourney = () => {
       );
     });
 
-    const paint = (line: SVGLineElement | null, from: Point, to: Point) => {
-      if (!line) return;
-      line.setAttribute("x1", String(from.x));
-      line.setAttribute("y1", String(from.y));
-      line.setAttribute("x2", String(to.x));
-      line.setAttribute("y2", String(to.y));
-    };
-
     const tick = (t: number) => {
       // Under reduced motion nothing drifts, so the only thing left to track
       // is the drag offset — the card transforms stay untouched at zero.
@@ -456,15 +546,16 @@ const DesktopJourney = () => {
         }
 
         const { start, end } = connector(node, hub, chipHalf, hubHalf);
-        paint(lineRefs.current[i], start, end);
+        paintStream(streamRefs.current[i] ?? [], NODE_STREAMS[i], start, end, t, !!reduceMotion);
       }
 
-      // Output flow. Drawn hub -> AI -> outcome so the dashes march away from
+      // Output flow. Drawn hub -> AI -> outcome so the dots travel away from
       // the hub, which is what makes it read as a result rather than an input.
+      // The output brightens toward the payoff, on the same ramp as the cards.
       const hubToAi = connector(hub, stages[0], hubHalf, stageHalves[0]);
-      paint(flowRefs.current[0], hubToAi.start, hubToAi.end);
+      paintStream(flowStreamRefs.current[0] ?? [], FLOW_STREAMS[0], hubToAi.start, hubToAi.end, t, !!reduceMotion, 0.85);
       const aiToOutcome = connector(stages[0], stages[1], stageHalves[0], stageHalves[1]);
-      paint(flowRefs.current[1], aiToOutcome.start, aiToOutcome.end);
+      paintStream(flowStreamRefs.current[1] ?? [], FLOW_STREAMS[1], aiToOutcome.start, aiToOutcome.end, t, !!reduceMotion, 1);
 
       frame = requestAnimationFrame(tick);
     };
@@ -495,23 +586,6 @@ const DesktopJourney = () => {
   }, [size, reduceMotion, dragX, dragY]);
 
   const total = INTEGRATION_NODES.length;
-  const pct = (p: { x: number; y: number }) => ({
-    x: (p.x / 100) * size.w,
-    y: (p.y / 100) * size.h,
-  });
-  // First paint only, from nominal box sizes. The loop takes over with the
-  // measured ones on the very next frame.
-  const nominal = {
-    hub: halfWithGap(CARD_BOX.w, CARD_BOX.h),
-    chip: halfWithGap(CHIP_BOX.w, CHIP_BOX.h),
-    stage: halfWithGap(CARD_BOX.w, CARD_BOX.h),
-  };
-  const hubBase = pct(HUB);
-  const stageBases = [pct(AI), pct(OUTCOME)];
-  const flowSeeds = [
-    connector(hubBase, stageBases[0], nominal.hub, nominal.stage),
-    connector(stageBases[0], stageBases[1], nominal.stage, nominal.stage),
-  ];
 
   return (
     <div
@@ -524,50 +598,34 @@ const DesktopJourney = () => {
           viewBox={`0 0 ${size.w} ${size.h}`}
           className="absolute inset-0 h-full w-full"
         >
-          {INTEGRATION_NODES.map((node, i) => {
-            const { start, end } = connector(
-              pct(positionFor(i, total)),
-              hubBase,
-              nominal.chip,
-              nominal.hub,
-            );
-            return (
-              <line
-                key={node.slug}
-                ref={(elem) => {
-                  lineRefs.current[i] = elem;
-                }}
-                x1={start.x}
-                y1={start.y}
-                x2={end.x}
-                y2={end.y}
-                stroke="hsl(var(--brand))"
-                strokeOpacity={0.35}
-                style={{ animationDelay: `${i * 0.13}s` }}
-                className="motion-safe:animate-dataflow"
-                {...connectorProps}
-              />
-            );
-          })}
+          {INTEGRATION_NODES.map((node, i) => (
+            <g key={node.slug} fill="hsl(var(--brand))">
+              {NODE_STREAMS[i].map((_, j) => (
+                <circle
+                  key={j}
+                  ref={(elem) => {
+                    (streamRefs.current[i] ??= [])[j] = elem;
+                  }}
+                  // The first tick places every dot; until then they wait
+                  // invisible so there is no one-frame pile at 0,0.
+                  opacity={0}
+                />
+              ))}
+            </g>
+          ))}
 
-          {flowSeeds.map((seed, i) => (
-            <line
-              key={`flow-${i}`}
-              ref={(elem) => {
-                flowRefs.current[i] = elem;
-              }}
-              x1={seed.start.x}
-              y1={seed.start.y}
-              x2={seed.end.x}
-              y2={seed.end.y}
-              stroke="hsl(var(--brand))"
-              // The output half brightens as it goes, on the same ramp as the
-              // cards it joins, so the colour carries the reading order too.
-              strokeOpacity={0.55 + i * 0.2}
-              style={{ animationDelay: `${0.4 + i * 0.3}s` }}
-              className="motion-safe:animate-dataflow"
-              {...connectorProps}
-            />
+          {FLOW_STREAMS.map((stream, i) => (
+            <g key={`flow-${i}`} fill="hsl(var(--brand))">
+              {stream.map((_, j) => (
+                <circle
+                  key={j}
+                  ref={(elem) => {
+                    (flowStreamRefs.current[i] ??= [])[j] = elem;
+                  }}
+                  opacity={0}
+                />
+              ))}
+            </g>
           ))}
         </svg>
       )}
@@ -654,13 +712,91 @@ const DesktopJourney = () => {
   );
 };
 
-/** A short dashed run, for the stacked layout where there is no SVG to draw. */
-const StackLink = () => (
-  <div
-    aria-hidden="true"
-    className="mx-auto h-10 w-px border-l border-dashed border-brand/40"
-  />
-);
+/**
+ * The stacked layout's links, seeded past both the node range and the desktop
+ * flow legs so no two streams on the page share a pattern.
+ */
+const STACK_STREAMS: StreamParticle[][] = [streamFor(60), streamFor(61), streamFor(62)];
+
+/** Canvas for one stacked link. Wide enough for the funnel mouth plus sway. */
+const STACK_STREAM = { w: 72, h: 56 };
+
+/**
+ * The stacked counterpart to the desktop streams: the same swarm on one short
+ * vertical run, in its own tiny SVG since there is no shared canvas here. The
+ * endpoints never move, so each instance only needs its clock — it owns a
+ * loop, pauses it off screen, and under reduced motion paints the frozen
+ * scatter once instead of running at all.
+ */
+const StackStream = ({
+  particles,
+  alpha,
+}: {
+  particles: StreamParticle[];
+  alpha?: number;
+}) => {
+  const reduceMotion = useReducedMotion();
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const dotRefs = useRef<(SVGCircleElement | null)[]>([]);
+
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const start = { x: STACK_STREAM.w / 2, y: 0 };
+    const end = { x: STACK_STREAM.w / 2, y: STACK_STREAM.h };
+
+    if (reduceMotion) {
+      paintStream(dotRefs.current, particles, start, end, 0, true, alpha);
+      return;
+    }
+
+    let frame = 0;
+    const tick = (t: number) => {
+      paintStream(dotRefs.current, particles, start, end, t, false, alpha);
+      frame = requestAnimationFrame(tick);
+    };
+    const startLoop = () => {
+      if (!frame) frame = requestAnimationFrame(tick);
+    };
+    const stopLoop = () => {
+      if (!frame) return;
+      cancelAnimationFrame(frame);
+      frame = 0;
+    };
+    const intersection = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) startLoop();
+      else stopLoop();
+    });
+    intersection.observe(el);
+    return () => {
+      stopLoop();
+      intersection.disconnect();
+    };
+  }, [particles, alpha, reduceMotion]);
+
+  return (
+    <svg
+      ref={svgRef}
+      aria-hidden="true"
+      viewBox={`0 0 ${STACK_STREAM.w} ${STACK_STREAM.h}`}
+      width={STACK_STREAM.w}
+      height={STACK_STREAM.h}
+      className="mx-auto block"
+    >
+      <g fill="hsl(var(--brand))">
+        {particles.map((_, j) => (
+          <circle
+            key={j}
+            ref={(elem) => {
+              dotRefs.current[j] = elem;
+            }}
+            opacity={0}
+          />
+        ))}
+      </g>
+    </svg>
+  );
+};
 
 /**
  * Below xl the left-to-right journey has nowhere to go, so the same four beats
@@ -674,13 +810,14 @@ const StackedJourney = () => (
         <NodeChip key={node.slug} node={node} />
       ))}
     </div>
-    <StackLink />
+    <StackStream particles={STACK_STREAMS[0]} />
     <div className="flex justify-center">
       <Hub />
     </div>
-    {STAGES.map((stage) => (
+    {STAGES.map((stage, i) => (
       <div key={stage.label}>
-        <StackLink />
+        {/* Same brightening ramp toward the payoff as the desktop flow. */}
+        <StackStream particles={STACK_STREAMS[i + 1]} alpha={0.85 + i * 0.15} />
         <div className="flex justify-center">
           <JourneyCard icon={stage.icon} label={stage.label} tone={stage.tone} />
         </div>
