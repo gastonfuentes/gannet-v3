@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useReducedMotion } from "framer-motion";
+import { Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type IntegrationNode = {
@@ -64,9 +65,16 @@ const SCATTER_SALT = { along: 0.37, across: 97.99 };
  * the corners, which sit close enough to collide once everything is drifting.
  */
 const SIDE_SPAN = 0.85;
-/** Where each connector starts and stops, as a fraction of node -> hub. */
-const LINE_START = 0.12;
-const LINE_END = 0.66;
+/**
+ * Clearance between a connector's tip and the card it points at, in px. A
+ * fixed distance rather than a fraction of the node -> hub span: the nodes sit
+ * at very different distances from the hub, so a fraction leaves a different
+ * gap at every card, which looks careless around a focal element.
+ */
+const CONNECTOR_GAP = 14;
+/** Fallbacks for the first paint, before the real boxes can be measured. */
+const HUB_BOX = { w: 248, h: 140 };
+const CHIP_BOX = { w: 132, h: 81 };
 
 /**
  * Stable pseudo-random in -1..1. A hash rather than Math.random so the layout
@@ -131,7 +139,32 @@ const positionFor = (index: number, total: number) => {
   };
 };
 
-const lerp = (from: number, to: number, t: number) => from + (to - from) * t;
+type Point = { x: number; y: number };
+
+/**
+ * Walks from `from` toward `to` and returns the point where the path leaves a
+ * box of the given half-extents centred on `from`. Never travels past `to`.
+ */
+const boxExit = (from: Point, to: Point, halfW: number, halfH: number): Point => {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const spanX = Math.abs(dx) > 0.01 ? halfW / Math.abs(dx) : Infinity;
+  const spanY = Math.abs(dy) > 0.01 ? halfH / Math.abs(dy) : Infinity;
+  const t = Math.min(spanX, spanY, 1);
+  return { x: from.x + dx * t, y: from.y + dy * t };
+};
+
+/**
+ * The visible span of one connector: it leaves the node's card and stops short
+ * of the hub's. When the hub is dragged close enough that the two clearances
+ * meet, the segment would flip backwards, so it collapses to nothing instead.
+ */
+const connector = (node: Point, hub: Point, chip: Point, hubBox: Point) => {
+  const start = boxExit(node, hub, chip.x, chip.y);
+  const end = boxExit(hub, node, hubBox.x, hubBox.y);
+  const forward = (end.x - start.x) * (hub.x - node.x) + (end.y - start.y) * (hub.y - node.y);
+  return forward > 0 ? { start, end } : { start, end: start };
+};
 
 /**
  * Per-node Lissajous drift: amplitudes in px, frequencies in rad/ms.
@@ -196,21 +229,32 @@ const NodeChip = ({ node }: { node: IntegrationNode }) => (
   </div>
 );
 
+/**
+ * The centre of a hub-and-spoke diagram reads as the destination of everything
+ * flowing into it, so it holds the customer's outcome, not our wordmark — the
+ * data lands in one place that belongs to them. The brand still runs through
+ * the diagram: the connectors and this halo are drawn in the brand colour.
+ *
+ * `select-none` matters here. The plate is draggable, and without it a drag
+ * starting on the label selects text instead of moving the hub.
+ */
 const Hub = () => (
-  <div className="relative flex items-center justify-center">
+  <div className="relative flex select-none items-center justify-center">
     {/* Breathing halo. Sits behind the plate, never clipped by it. */}
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute h-[260px] w-[260px] rounded-full bg-[radial-gradient(circle,hsl(var(--brand)/0.22),transparent_65%)] motion-safe:animate-hub-pulse"
+      className="pointer-events-none absolute h-[300px] w-[300px] rounded-full bg-[radial-gradient(circle,hsl(var(--brand)/0.22),transparent_65%)] motion-safe:animate-hub-pulse"
     />
     <div className="relative rounded-[2rem] bg-white/[0.06] p-1.5 ring-1 ring-brand/25">
-      <div className="flex h-[100px] w-[200px] items-center justify-center rounded-[1.625rem] bg-card px-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.10)]">
-        <img
-          src="/logosvg.svg"
-          alt="GannetLabs"
-          draggable={false}
-          className="h-auto w-[136px] select-none object-contain"
-        />
+      <div className="flex h-[128px] w-[236px] flex-col items-center justify-center gap-3 rounded-[1.625rem] bg-card px-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.10)]">
+        {/* Same icon plate as the step cards below, so the hub reads as part
+            of the page's card system rather than an illustration. */}
+        <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.04] ring-1 ring-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+          <Layers aria-hidden="true" strokeWidth={1.25} className="h-5 w-5 text-brand" />
+        </div>
+        <p className="text-center font-display text-[15px] font-semibold leading-tight tracking-tight text-foreground">
+          Tus datos conectados
+        </p>
       </div>
     </div>
   </div>
@@ -258,6 +302,19 @@ const DesktopConstellation = () => {
     });
     const hubBase = { x: (HUB.x / 100) * size.w, y: (HUB.y / 100) * size.h };
 
+    // Measured once per layout, never inside the loop: reading offsetWidth
+    // forces a synchronous layout, and doing that every frame would thrash.
+    const hubEl = hubFloatRef.current;
+    const chipEl = nodeRefs.current.find(Boolean);
+    const hubHalf = {
+      x: (hubEl?.offsetWidth || HUB_BOX.w) / 2 + CONNECTOR_GAP,
+      y: (hubEl?.offsetHeight || HUB_BOX.h) / 2 + CONNECTOR_GAP,
+    };
+    const chipHalf = {
+      x: (chipEl?.offsetWidth || CHIP_BOX.w) / 2 + CONNECTOR_GAP,
+      y: (chipEl?.offsetHeight || CHIP_BOX.h) / 2 + CONNECTOR_GAP,
+    };
+
     const tick = (t: number) => {
       // Under reduced motion nothing drifts, so the only thing left to track
       // is the drag offset — the node transforms stay untouched at zero.
@@ -292,10 +349,11 @@ const DesktopConstellation = () => {
 
         const line = lineRefs.current[i];
         if (line) {
-          line.setAttribute("x1", String(lerp(node.x, hub.x, LINE_START)));
-          line.setAttribute("y1", String(lerp(node.y, hub.y, LINE_START)));
-          line.setAttribute("x2", String(lerp(node.x, hub.x, LINE_END)));
-          line.setAttribute("y2", String(lerp(node.y, hub.y, LINE_END)));
+          const { start: from, end: to } = connector(node, hub, chipHalf, hubHalf);
+          line.setAttribute("x1", String(from.x));
+          line.setAttribute("y1", String(from.y));
+          line.setAttribute("x2", String(to.x));
+          line.setAttribute("y2", String(to.y));
         }
       }
 
@@ -344,16 +402,24 @@ const DesktopConstellation = () => {
           {INTEGRATION_NODES.map((node, i) => {
             const p = positionFor(i, total);
             const base = { x: (p.x / 100) * size.w, y: (p.y / 100) * size.h };
+            // First paint only, from nominal box sizes. The loop takes over
+            // with the measured ones on the very next frame.
+            const { start, end } = connector(
+              base,
+              hubBase,
+              { x: CHIP_BOX.w / 2 + CONNECTOR_GAP, y: CHIP_BOX.h / 2 + CONNECTOR_GAP },
+              { x: HUB_BOX.w / 2 + CONNECTOR_GAP, y: HUB_BOX.h / 2 + CONNECTOR_GAP },
+            );
             return (
               <line
                 key={node.slug}
                 ref={(elem) => {
                   lineRefs.current[i] = elem;
                 }}
-                x1={lerp(base.x, hubBase.x, LINE_START)}
-                y1={lerp(base.y, hubBase.y, LINE_START)}
-                x2={lerp(base.x, hubBase.x, LINE_END)}
-                y2={lerp(base.y, hubBase.y, LINE_END)}
+                x1={start.x}
+                y1={start.y}
+                x2={end.x}
+                y2={end.y}
                 stroke="hsl(var(--brand))"
                 strokeOpacity={0.35}
                 strokeWidth={1.25}
@@ -403,15 +469,16 @@ const DesktopConstellation = () => {
           }}
           // The snap back to origin is an inertia animation built from
           // dragTransition, so this is where the spring has to be tuned.
-          // Reduced motion keeps the interaction and overdamps it instead:
-          // the hub returns without the springy overshoot, and without the
-          // grab scale-up.
+          // Reduced motion keeps the interaction and overdamps it instead, so
+          // the hub returns without the springy overshoot.
           dragTransition={
             reduceMotion
               ? { bounceStiffness: 1200, bounceDamping: 90 }
               : { bounceStiffness: 140, bounceDamping: 16 }
           }
-          whileDrag={reduceMotion ? undefined : { scale: 1.04 }}
+          // Deliberately no scale-up while dragging: the connector gap is
+          // computed from the hub's layout size, which a transform does not
+          // change, so scaling the card visibly eats into that gap.
           style={{ x: dragX, y: dragY }}
           className="cursor-grab touch-none active:cursor-grabbing"
         >
