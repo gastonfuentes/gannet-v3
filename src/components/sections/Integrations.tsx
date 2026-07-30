@@ -30,7 +30,7 @@ const steps: { icon: LucideIcon; title: string; description: string }[] = [
     icon: TrendingUp,
     title: "Decidís mejor",
     description:
-      "Tus datos ordenados, en un solo lugar y a tiempo. Decidís con información real en vez de intuición.",
+      "Tus datos ya procesados y ordenados, listos para usar. Decidís con información real en vez de intuición.",
   },
 ];
 

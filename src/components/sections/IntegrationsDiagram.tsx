@@ -19,8 +19,11 @@ export type IntegrationNode = {
 /**
  * Kept deliberately short. The point is not to list everything we integrate
  * with — it is that a visitor recognises their own stack at a glance, so every
- * entry has to be a name they already know. Eight also happens to be what the
- * left-hand rows can hold without the logos crowding each other.
+ * entry has to be a name they already know.
+ *
+ * Order is load-bearing: the first eight fill the two rows, four each, and the
+ * LAST one takes the lead slot beside the hub. A tenth entry would put five in
+ * a row, which the width cannot hold.
  */
 export const INTEGRATION_NODES: IntegrationNode[] = [
   { name: "Tango Gestión", category: "ERP", slug: "tango" },
@@ -31,6 +34,7 @@ export const INTEGRATION_NODES: IntegrationNode[] = [
   { name: "WhatsApp", category: "Mensajería", slug: "whatsapp" },
   { name: "Gmail", category: "Email", slug: "gmail" },
   { name: "Google Drive", category: "Documentos", slug: "drive" },
+  { name: "Odoo", category: "ERP", slug: "odoo" },
 ];
 
 /**
@@ -42,11 +46,16 @@ const HUB = { x: 27, y: 50 };
 const AI = { x: 54.8, y: 50 };
 const OUTCOME = { x: 80.6, y: 50 };
 /**
+ * One source sits level with the hub and to its left, filling the pocket the
+ * two rows leave open in the middle. It is the last entry in the node list.
+ */
+const LEAD = { x: 7, y: 50 };
+/**
  * Source logos sit in two rows, above and below the hub rather than ringing it,
  * which is what frees the right-hand half for the rest of the journey.
  *
  * `offset` is the load-bearing number. A logo sitting directly above the hub
- * spends 54px leaving its own card and 84px arriving at the hub's before any
+ * spends 54px leaving its own card and 76px arriving at the hub's before any
  * line is drawn, so the rows have to sit far enough out that what is left reads
  * as a connection rather than a stub. That is what sets the container's height.
  */
@@ -66,9 +75,11 @@ const SCATTER_SALT = { along: 0.37, across: 97.99 };
  * gap at every card, which looks careless.
  */
 const CONNECTOR_GAP = 14;
-/** Fallbacks for the first paint, before the real boxes can be measured. */
-const HUB_BOX = { w: 248, h: 140 };
-const STAGE_BOX = { w: 200, h: 124 };
+/**
+ * Fallbacks for the first paint, before the real boxes can be measured. All
+ * three journey cards are the same size, so one entry covers them.
+ */
+const CARD_BOX = { w: 200, h: 124 };
 const CHIP_BOX = { w: 132, h: 81 };
 
 /**
@@ -81,19 +92,24 @@ const scatterAt = (index: number, salt: number) => {
 };
 
 /**
- * Splits the sources across the two rows in order, spreading each row end to
- * end, then nudges every logo off its exact slot so the rows read as
- * hand-placed instead of plotted.
+ * Places one source. The last node in the list goes to the lead slot; the rest
+ * split evenly across the two rows, spread end to end. Every slot is then
+ * nudged off its exact position so the rows read as hand-placed, not plotted.
  */
 const positionFor = (index: number, total: number) => {
-  const perRow = Math.ceil(total / 2);
-  const onTop = index < perRow;
-  const column = onTop ? index : index - perRow;
-  const columns = onTop ? perRow : total - perRow;
-  const t = columns > 1 ? column / (columns - 1) : 0.5;
-
   const along = scatterAt(index, SCATTER_SALT.along) * SCATTER.along;
   const across = scatterAt(index, SCATTER_SALT.across) * SCATTER.across;
+
+  const rowed = total - 1;
+  if (index >= rowed) {
+    return { x: LEAD.x + along, y: LEAD.y + across };
+  }
+
+  const perRow = Math.ceil(rowed / 2);
+  const onTop = index < perRow;
+  const column = onTop ? index : index - perRow;
+  const columns = onTop ? perRow : rowed - perRow;
+  const t = columns > 1 ? column / (columns - 1) : 0.5;
 
   return {
     x: ROW.from + (ROW.to - ROW.from) * t + along,
@@ -200,9 +216,11 @@ const NodeMark = ({ node }: { node: IntegrationNode }) => {
       alt={node.name}
       loading="lazy"
       onError={() => setFailed(true)}
-      // Every logo ships a viewBox tightened to its own artwork, so the width
-      // cap is what does the work; the height cap only guards the tallest.
-      className="max-h-8 w-auto max-w-[92px] object-contain brightness-0 invert"
+      // Wordmarks are bound by the width cap and square glyphs by the height
+      // one, so the two caps are tuned independently: the taller height cap
+      // only ever grows a square mark, which would otherwise read as small
+      // next to a 92px wordmark.
+      className="max-h-10 w-auto max-w-[92px] object-contain brightness-0 invert"
     />
   );
 };
@@ -219,57 +237,112 @@ const NodeChip = ({ node }: { node: IntegrationNode }) => (
 );
 
 /**
- * The collection point. It holds the customer's outcome rather than our
- * wordmark: the centre of a diagram everything flows into reads as the
- * destination, and the data lands in one place that belongs to them. The brand
- * is still everywhere — the connectors and this halo are the brand colour.
- *
- * `select-none` matters here. The plate is draggable, and without it a drag
- * starting on the label selects text instead of moving the hub.
+ * The three cards warm up from left to right, so colour carries the reading
+ * order on its own: the hub is the dark card the rest of the page is built
+ * from, the middle one is tinted, and the payoff is the institutional green
+ * at full strength. `--brand-foreground` exists precisely for text on top of
+ * a solid brand fill, so the last card uses the pair rather than inventing a
+ * contrast of its own.
  */
-const Hub = () => (
-  <div className="relative flex select-none items-center justify-center">
-    {/* Breathing halo. Sits behind the plate, never clipped by it. */}
-    <div
-      aria-hidden="true"
-      className="pointer-events-none absolute h-[300px] w-[300px] rounded-full bg-[radial-gradient(circle,hsl(var(--brand)/0.22),transparent_65%)] motion-safe:animate-hub-pulse"
-    />
-    <div className="relative rounded-[2rem] bg-white/[0.06] p-1.5 ring-1 ring-brand/25">
-      <div className="flex h-[128px] w-[236px] flex-col items-center justify-center gap-3 rounded-[1.625rem] bg-card px-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.10)]">
-        {/* Same icon plate as the step cards below, so the hub reads as part
-            of the page's card system rather than an illustration. */}
-        <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.04] ring-1 ring-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-          <Layers aria-hidden="true" strokeWidth={1.25} className="h-5 w-5 text-brand" />
-        </div>
-        <p className="text-center font-display text-[15px] font-semibold leading-tight tracking-tight text-foreground">
-          Tus datos conectados
-        </p>
-      </div>
-    </div>
-  </div>
-);
+type Tone = "base" | "mid" | "peak";
+
+const TONES: Record<
+  Tone,
+  { bezel: string; face: string; tint: boolean; plate: string; ink: string }
+> = {
+  base: {
+    bezel: "bg-white/[0.06] ring-brand/25",
+    face: "bg-card",
+    tint: false,
+    plate: "bg-white/[0.04] ring-white/[0.08]",
+    ink: "text-foreground",
+  },
+  mid: {
+    bezel: "bg-brand/[0.10] ring-brand/40",
+    face: "bg-card",
+    tint: true,
+    plate: "bg-brand/[0.10] ring-brand/25",
+    ink: "text-foreground",
+  },
+  peak: {
+    bezel: "bg-brand/30 ring-brand/60",
+    face: "bg-brand",
+    tint: false,
+    plate: "bg-brand-foreground/10 ring-brand-foreground/20",
+    ink: "text-brand-foreground",
+  },
+};
 
 /**
- * The two stages after the hub. Smaller than it on purpose: the hub is where
- * the customer's data lives and the one thing you can grab, so it stays the
- * anchor of the composition.
+ * One beat of the journey. All three are the same size on purpose: this is a
+ * sequence of equals, not a hub with satellites. What sets the first one apart
+ * is the halo and the fact that you can grab it, not extra bulk.
+ *
+ * `select-none` matters on the hub. It is draggable, and without it a drag
+ * starting on the label selects text instead of moving the card.
  */
-const StageCard = ({ icon: Icon, label }: { icon: LucideIcon; label: string }) => (
-  <div className="select-none rounded-[1.75rem] bg-white/[0.05] p-1.5 ring-1 ring-white/[0.08]">
-    <div className="flex h-[112px] w-[188px] flex-col items-center justify-center gap-2.5 rounded-[1.375rem] bg-card px-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-      <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.04] ring-1 ring-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-        <Icon aria-hidden="true" strokeWidth={1.25} className="h-[18px] w-[18px] text-brand" />
+const JourneyCard = ({
+  icon: Icon,
+  label,
+  tone,
+  halo = false,
+}: {
+  icon: LucideIcon;
+  label: string;
+  tone: Tone;
+  halo?: boolean;
+}) => {
+  const t = TONES[tone];
+  return (
+    <div className="relative flex select-none items-center justify-center">
+      {halo && (
+        /* Breathing halo. Sits behind the plate, never clipped by it. */
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute h-[260px] w-[260px] rounded-full bg-[radial-gradient(circle,hsl(var(--brand)/0.22),transparent_65%)] motion-safe:animate-hub-pulse"
+        />
+      )}
+      <div className={cn("relative rounded-[1.75rem] p-1.5 ring-1", t.bezel)}>
+        <div
+          className={cn(
+            "relative flex h-[112px] w-[188px] flex-col items-center justify-center gap-2.5 overflow-hidden rounded-[1.375rem] px-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
+            t.face,
+          )}
+        >
+          {t.tint && (
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-brand/[0.12]" />
+          )}
+          {/* Same icon plate as the step cards below the diagram, so these
+              read as part of the page's card system, not as an illustration. */}
+          <div
+            className={cn(
+              "relative inline-flex h-10 w-10 items-center justify-center rounded-xl ring-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
+              t.plate,
+            )}
+          >
+            <Icon aria-hidden="true" strokeWidth={1.25} className={cn("h-[18px] w-[18px]", t.ink)} />
+          </div>
+          <p
+            className={cn(
+              "relative text-center font-display text-sm font-semibold leading-tight tracking-tight",
+              t.ink,
+            )}
+          >
+            {label}
+          </p>
+        </div>
       </div>
-      <p className="text-center font-display text-sm font-semibold leading-tight tracking-tight text-foreground">
-        {label}
-      </p>
     </div>
-  </div>
+  );
+};
+
+const Hub = () => (
+  <JourneyCard icon={Layers} label="Toda tu información en un mismo lugar" tone="base" halo />
 );
 
-const STAGES: { icon: LucideIcon; label: string }[] = [
-  { icon: Sparkles, label: "Procesados con IA" },
-  { icon: TrendingUp, label: "Mejores decisiones" },
+const STAGES: { icon: LucideIcon; label: string; tone: Tone }[] = [
+  { icon: Sparkles, label: "Procesados con IA", tone: "mid" },
+  { icon: TrendingUp, label: "Mejores decisiones", tone: "peak" },
 ];
 
 /** Shared stroke setup, so sources and output stay one visual family. */
@@ -331,7 +404,7 @@ const DesktopJourney = () => {
     // forces a synchronous layout, and doing that every frame would thrash.
     const hubEl = hubFloatRef.current;
     const chipEl = nodeRefs.current.find(Boolean);
-    const hubHalf = halfWithGap(hubEl?.offsetWidth || HUB_BOX.w, hubEl?.offsetHeight || HUB_BOX.h);
+    const hubHalf = halfWithGap(hubEl?.offsetWidth || CARD_BOX.w, hubEl?.offsetHeight || CARD_BOX.h);
     const chipHalf = halfWithGap(
       chipEl?.offsetWidth || CHIP_BOX.w,
       chipEl?.offsetHeight || CHIP_BOX.h,
@@ -339,8 +412,8 @@ const DesktopJourney = () => {
     const stageHalves = stageBases.map((_, i) => {
       const stageEl = stageRefs.current[i];
       return halfWithGap(
-        stageEl?.offsetWidth || STAGE_BOX.w,
-        stageEl?.offsetHeight || STAGE_BOX.h,
+        stageEl?.offsetWidth || CARD_BOX.w,
+        stageEl?.offsetHeight || CARD_BOX.h,
       );
     });
 
@@ -429,9 +502,9 @@ const DesktopJourney = () => {
   // First paint only, from nominal box sizes. The loop takes over with the
   // measured ones on the very next frame.
   const nominal = {
-    hub: halfWithGap(HUB_BOX.w, HUB_BOX.h),
+    hub: halfWithGap(CARD_BOX.w, CARD_BOX.h),
     chip: halfWithGap(CHIP_BOX.w, CHIP_BOX.h),
-    stage: halfWithGap(STAGE_BOX.w, STAGE_BOX.h),
+    stage: halfWithGap(CARD_BOX.w, CARD_BOX.h),
   };
   const hubBase = pct(HUB);
   const stageBases = [pct(AI), pct(OUTCOME)];
@@ -488,9 +561,9 @@ const DesktopJourney = () => {
               x2={seed.end.x}
               y2={seed.end.y}
               stroke="hsl(var(--brand))"
-              // Brighter than the inbound lines: this is the payoff half of
-              // the diagram, so it should carry a little more weight.
-              strokeOpacity={0.55}
+              // The output half brightens as it goes, on the same ramp as the
+              // cards it joins, so the colour carries the reading order too.
+              strokeOpacity={0.55 + i * 0.2}
               style={{ animationDelay: `${0.4 + i * 0.3}s` }}
               className="motion-safe:animate-dataflow"
               {...connectorProps}
@@ -572,7 +645,7 @@ const DesktopJourney = () => {
               }}
               style={{ willChange: "transform" }}
             >
-              <StageCard icon={stage.icon} label={stage.label} />
+              <JourneyCard icon={stage.icon} label={stage.label} tone={stage.tone} />
             </div>
           </div>
         );
@@ -609,7 +682,7 @@ const StackedJourney = () => (
       <div key={stage.label}>
         <StackLink />
         <div className="flex justify-center">
-          <StageCard icon={stage.icon} label={stage.label} />
+          <JourneyCard icon={stage.icon} label={stage.label} tone={stage.tone} />
         </div>
       </div>
     ))}
