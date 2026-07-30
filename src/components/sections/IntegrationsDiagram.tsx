@@ -336,13 +336,19 @@ const JourneyCard = ({
   );
 };
 
+/**
+ * The three labels are one sentence split across the cards — "toda tu
+ * información, ordenada y analizada con IA, lista para decidir mejor" — so
+ * every stage keeps the same subject and the same feminine agreement. Read
+ * apart they still name a step; read together they spell out the process.
+ */
 const Hub = () => (
-  <JourneyCard icon={Layers} label="Toda tu información en un mismo lugar" tone="base" halo />
+  <JourneyCard icon={Layers} label="Toda tu información en un solo lugar" tone="base" halo />
 );
 
 const STAGES: { icon: LucideIcon; label: string; tone: Tone }[] = [
-  { icon: Sparkles, label: "Procesados con IA", tone: "mid" },
-  { icon: TrendingUp, label: "Mejores decisiones", tone: "peak" },
+  { icon: Sparkles, label: "Ordenada y analizada con IA", tone: "mid" },
+  { icon: TrendingUp, label: "Lista para decidir mejor", tone: "peak" },
 ];
 
 /**
@@ -354,6 +360,15 @@ const STAGES: { icon: LucideIcon; label: string; tone: Tone }[] = [
 const STREAM_SIZE = 18;
 /** Half-width of the funnel mouth at the source card, in px. */
 const STREAM_SPREAD = 15;
+/**
+ * Data arrives raw and colourless and only takes on the brand green once it
+ * leaves the AI card — so the palette itself marks the moment the data stops
+ * being whatever the source gave us and becomes something worked on.
+ */
+const STREAM_INK = {
+  raw: "hsl(var(--foreground))",
+  refined: "hsl(var(--brand))",
+} as const;
 
 /**
  * One dot in a stream. Every field is fixed at module load — the animation
@@ -421,7 +436,7 @@ const paintStream = (
   end: Point,
   t: number,
   frozen: boolean,
-  alpha = 0.75,
+  alpha = 0.7,
 ) => {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
@@ -551,9 +566,10 @@ const DesktopJourney = () => {
 
       // Output flow. Drawn hub -> AI -> outcome so the dots travel away from
       // the hub, which is what makes it read as a result rather than an input.
-      // The output brightens toward the payoff, on the same ramp as the cards.
+      // Each leg is a little stronger than the last, so the flow still gains
+      // weight across the run even where the colour has not changed yet.
       const hubToAi = connector(hub, stages[0], hubHalf, stageHalves[0]);
-      paintStream(flowStreamRefs.current[0] ?? [], FLOW_STREAMS[0], hubToAi.start, hubToAi.end, t, !!reduceMotion, 0.85);
+      paintStream(flowStreamRefs.current[0] ?? [], FLOW_STREAMS[0], hubToAi.start, hubToAi.end, t, !!reduceMotion, 0.8);
       const aiToOutcome = connector(stages[0], stages[1], stageHalves[0], stageHalves[1]);
       paintStream(flowStreamRefs.current[1] ?? [], FLOW_STREAMS[1], aiToOutcome.start, aiToOutcome.end, t, !!reduceMotion, 1);
 
@@ -599,7 +615,7 @@ const DesktopJourney = () => {
           className="absolute inset-0 h-full w-full"
         >
           {INTEGRATION_NODES.map((node, i) => (
-            <g key={node.slug} fill="hsl(var(--brand))">
+            <g key={node.slug} fill={STREAM_INK.raw}>
               {NODE_STREAMS[i].map((_, j) => (
                 <circle
                   key={j}
@@ -615,7 +631,7 @@ const DesktopJourney = () => {
           ))}
 
           {FLOW_STREAMS.map((stream, i) => (
-            <g key={`flow-${i}`} fill="hsl(var(--brand))">
+            <g key={`flow-${i}`} fill={i === 0 ? STREAM_INK.raw : STREAM_INK.refined}>
               {stream.map((_, j) => (
                 <circle
                   key={j}
@@ -718,6 +734,16 @@ const DesktopJourney = () => {
  */
 const STACK_STREAMS: StreamParticle[][] = [streamFor(60), streamFor(61), streamFor(62)];
 
+/**
+ * The stacked legs in reading order — sources to hub, hub to AI, AI to
+ * outcome — carrying the same ink and weight as their desktop counterparts.
+ */
+const STACK_LEGS = [
+  { particles: STACK_STREAMS[0], ink: STREAM_INK.raw, alpha: 0.7 },
+  { particles: STACK_STREAMS[1], ink: STREAM_INK.raw, alpha: 0.8 },
+  { particles: STACK_STREAMS[2], ink: STREAM_INK.refined, alpha: 1 },
+];
+
 /** Canvas for one stacked link. Wide enough for the funnel mouth plus sway. */
 const STACK_STREAM = { w: 72, h: 56 };
 
@@ -730,10 +756,12 @@ const STACK_STREAM = { w: 72, h: 56 };
  */
 const StackStream = ({
   particles,
+  ink,
   alpha,
 }: {
   particles: StreamParticle[];
-  alpha?: number;
+  ink: string;
+  alpha: number;
 }) => {
   const reduceMotion = useReducedMotion();
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -783,7 +811,7 @@ const StackStream = ({
       height={STACK_STREAM.h}
       className="mx-auto block"
     >
-      <g fill="hsl(var(--brand))">
+      <g fill={ink}>
         {particles.map((_, j) => (
           <circle
             key={j}
@@ -810,14 +838,13 @@ const StackedJourney = () => (
         <NodeChip key={node.slug} node={node} />
       ))}
     </div>
-    <StackStream particles={STACK_STREAMS[0]} />
+    <StackStream {...STACK_LEGS[0]} />
     <div className="flex justify-center">
       <Hub />
     </div>
     {STAGES.map((stage, i) => (
       <div key={stage.label}>
-        {/* Same brightening ramp toward the payoff as the desktop flow. */}
-        <StackStream particles={STACK_STREAMS[i + 1]} alpha={0.85 + i * 0.15} />
+        <StackStream {...STACK_LEGS[i + 1]} />
         <div className="flex justify-center">
           <JourneyCard icon={stage.icon} label={stage.label} tone={stage.tone} />
         </div>
